@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ValidateMiddleware tests if a JWT token is present and valid in the request and returns an Error if not
@@ -70,8 +72,9 @@ func CreateTokenEndpoint(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(types.JwtToken{Token: tokenString})
 }
 
-func MatchUser(sentUser types.User) types.User, error.Error {
-	var users []Users
+// MatchUser attempt to find the given user against users in configuration file
+func MatchUser(sentUser types.User) (types.User, error) {
+	var users []types.User
 	userFile, err := os.Open("./config/users.json")
 	defer userFile.Close()
 	if err != nil {
@@ -84,7 +87,7 @@ func MatchUser(sentUser types.User) types.User, error.Error {
 		return nil, err
 	}
 	for _, user := range users {
-		notFound := CompareHashAndPassword(user.PasswordHash, sentUser.Password)
+		notFound := bcrypt.CompareHashAndPassword(user.PasswordHash, sentUser.Password)
 		if notFound == nil {
 			return user, nil
 		}
