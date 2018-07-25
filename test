@@ -1,0 +1,11 @@
+GET http://localhost:2080/api/test
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzI1NDcxNDUsImlhdCI6MTUzMjU0NzE0NX0.yaMITf29wFWrEsO3Pe6xN62ZYQmm1S4pXKufQkDEjQI
+
+
+POST http://localhost:2080/api/login HTTP/1.1
+Content-Type: application/json
+
+{
+    "login": "admin",
+    "password": "password"
+}

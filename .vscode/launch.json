@@ -12,7 +12,7 @@
             "remotePath": "",
             "port": 2345,
             "host": "127.0.0.1",
-            "program": "/home/nicolas/dev/go/src/github.com/nicolaspernoud/ninicobox-v3-server",
+            "program": "${file}",
             "env": {},
             "args": [],
             "showLog": true

@@ -2,10 +2,12 @@ package security
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/context"
@@ -13,8 +15,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// ValidateMiddleware tests if a JWT token is present and valid in the request and returns an Error if not
-func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// ValidateJWTMiddleware tests if a JWT token is present and valid in the request and returns an Error if not
+func ValidateJWTMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		authorizationHeader := req.Header.Get("authorization")
 		if authorizationHeader != "" {
@@ -43,27 +45,30 @@ func ValidateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// CreateTokenEndpoint validate the username and password provided in the function body against a local file and return a token if the user is found
-func CreateTokenEndpoint(w http.ResponseWriter, req *http.Request) {
+// Authenticate validate the username and password provided in the function body against a local file and return a token if the user is found
+func Authenticate(w http.ResponseWriter, req *http.Request) {
 
 	var sentUser types.User
-	var error error.Error
-	err = json.NewDecoder(req.Body).Decode(&sentUser)
-	if err != nil {
+	var error error
+	error = json.NewDecoder(req.Body).Decode(&sentUser)
+	if error != nil {
 		http.Error(w, "Body is not correct", 400)
 		return
 	}
 	// Try to match the user with an user in the database
 	var user types.User
-	user, err = MatchUser(sentUser)
-	if err != nil {
+	user, error = matchUser(sentUser)
+	if error != nil {
 		http.Error(w, "User not found", 400)
 		return
 	}
 	// If user is found, create and send a JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": user.Username,
-		"password": user.Password,
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
+		User: user,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * time.Duration(24)).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
 	})
 	tokenString, error := token.SignedString([]byte("secret"))
 	if error != nil {
@@ -72,25 +77,29 @@ func CreateTokenEndpoint(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(types.JwtToken{Token: tokenString})
 }
 
-// MatchUser attempt to find the given user against users in configuration file
-func MatchUser(sentUser types.User) (types.User, error) {
+// matchUser attempt to find the given user against users in configuration file
+func matchUser(sentUser types.User) (types.User, error) {
 	var users []types.User
+	var emptyUser types.User
+
 	userFile, err := os.Open("./config/users.json")
 	defer userFile.Close()
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil, err
+		return emptyUser, err
 	}
 	err = json.NewDecoder(userFile).Decode(&users)
 	if err != nil {
 		fmt.Println(err.Error())
-		return nil, err
+		return emptyUser, err
 	}
 	for _, user := range users {
-		notFound := bcrypt.CompareHashAndPassword(user.PasswordHash, sentUser.Password)
-		if notFound == nil {
-			return user, nil
+		if user.Login == sentUser.Login {
+			notFound := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(sentUser.Password))
+			if notFound == nil {
+				return user, nil
+			}
 		}
 	}
-	return nil, error.Error("User not found")
+	return emptyUser, errors.New("User not found")
 }

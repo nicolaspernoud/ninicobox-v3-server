@@ -24,7 +24,7 @@ func TestEndpoint(w http.ResponseWriter, req *http.Request) {
 func main() {
 	router := mux.NewRouter()
 	fmt.Println("Starting the application...")
-	router.HandleFunc("/authenticate", CreateTokenEndpoint).Methods("POST")
-	router.HandleFunc("/test", security.ValidateMiddleware(TestEndpoint)).Methods("GET")
-	log.Fatal(http.ListenAndServe(":12345", router))
+	router.HandleFunc("/api/login", security.Authenticate).Methods("POST")
+	router.HandleFunc("/api/test", security.ValidateJWTMiddleware(TestEndpoint)).Methods("GET")
+	log.Fatal(http.ListenAndServe(":2080", router))
 }
