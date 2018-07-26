@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,8 +10,7 @@ import (
 )
 
 func TestEndpoint(w http.ResponseWriter, req *http.Request) {
-	var user = req.Context().Value("Username")
-	json.NewEncoder(w).Encode(user)
+	fmt.Fprintf(w, "User is %v, and has role %v", req.Context().Value("login"), req.Context().Value("role"))
 }
 
 func main() {

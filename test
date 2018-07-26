@@ -1,10 +1,20 @@
 GET http://localhost:2080/api/test
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzI3MDE3NjMsImlhdCI6MTUzMjYxNTM2M30.UxyIg5m6tvZfjdTTjBnxdby0SKOsjFCPEtVACBMUP8M
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzI3MTA4OTAsImlhdCI6MTUzMjYyNDQ5MH0.etXwfv_tmQLq1VWu7C2vLgZmzXqqPZxflCDYaRvuvxY
+
+
 
 POST http://localhost:2080/api/login HTTP/1.1
 Content-Type: application/json
 
 {
     "login": "admin",
+    "password": "password"
+}
+
+POST http://localhost:2080/api/login HTTP/1.1
+Content-Type: application/json
+
+{
+    "login": "user",
     "password": "password"
 }
