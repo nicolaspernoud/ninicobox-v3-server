@@ -6,18 +6,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
-	"github.com/mitchellh/mapstructure"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
-	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 )
 
 func TestEndpoint(w http.ResponseWriter, req *http.Request) {
-	decoded := context.Get(req, "decoded")
-	var user types.User
-	mapstructure.Decode(decoded.(jwt.MapClaims), &user)
+	var user = req.Context().Value("Username")
 	json.NewEncoder(w).Encode(user)
 }
 
@@ -25,6 +19,6 @@ func main() {
 	router := mux.NewRouter()
 	fmt.Println("Starting the application...")
 	router.HandleFunc("/api/login", security.Authenticate).Methods("POST")
-	router.HandleFunc("/api/test", security.ValidateJWTMiddleware(TestEndpoint)).Methods("GET")
+	router.HandleFunc("/api/test", security.ValidateJWTMiddleware(TestEndpoint, []string{"admin"})).Methods("GET")
 	log.Fatal(http.ListenAndServe(":2080", router))
 }
