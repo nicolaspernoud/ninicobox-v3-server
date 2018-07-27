@@ -94,18 +94,63 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(w).Encode(types.JwtToken{Token: tokenString})
 }
 
-// matchUser attempt to find the given user against users in configuration file
-func matchUser(sentUser types.User) (types.User, error) {
+// GetUsers get users from users.json file
+func GetUsers() ([]types.User, error) {
 	var users []types.User
-	var emptyUser types.User
-
-	userFile, err := os.Open("./config/users.json")
-	defer userFile.Close()
+	usrFile, err := os.Open("./config/users.json")
+	defer usrFile.Close()
 	if err != nil {
 		fmt.Println(err.Error())
-		return emptyUser, err
+		return users, err
 	}
-	err = json.NewDecoder(userFile).Decode(&users)
+	err = json.NewDecoder(usrFile).Decode(&users)
+	return users, err
+}
+
+// SetUsers sets users from an http request
+func SetUsers(w http.ResponseWriter, req *http.Request) {
+	var users []types.User
+	if req.Body == nil {
+		http.Error(w, "Please send a request body", 400)
+	}
+	jsonErr := json.NewDecoder(req.Body).Decode(&users)
+	if jsonErr != nil {
+		http.Error(w, jsonErr.Error(), 400)
+	}
+	for key, user := range users {
+		if user.Password != "" {
+			hash, error := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+			if error != nil {
+				http.Error(w, error.Error(), 400)
+			}
+			users[key].PasswordHash = string(hash)
+			users[key].Password = ""
+		}
+	}
+
+	jsonData, err := json.Marshal(users)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	jsonFile, err := os.Create("./config/users.json")
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	_, err = jsonFile.Write(jsonData)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	err = jsonFile.Close()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+	}
+	fmt.Fprintf(w, "Users updated")
+}
+
+// matchUser attempt to find the given user against users in configuration file
+func matchUser(sentUser types.User) (types.User, error) {
+	var emptyUser types.User
+	users, err := GetUsers()
 	if err != nil {
 		fmt.Println(err.Error())
 		return emptyUser, err
@@ -123,7 +168,7 @@ func matchUser(sentUser types.User) (types.User, error) {
 
 func checkUserRoleIsAllowed(userRole string, allowedRoles []string) error {
 	for _, allowedRole := range allowedRoles {
-		if userRole == allowedRole {
+		if userRole == allowedRole || allowedRole == "all" {
 			return nil
 		}
 	}
