@@ -1,11 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
@@ -19,6 +17,10 @@ func testEndpoint(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 	fmt.Println("Starting the application...")
+	log.Fatal(http.ListenAndServe(":2080", createMainRouter()))
+}
+
+func createMainRouter() http.Handler {
 	router := mux.NewRouter()
 
 	// Create login unsecured routes
@@ -30,7 +32,7 @@ func main() {
 		AllowedRoles: []string{"all"},
 	}
 	commonRouter.Use(commonAuth.ValidateJWTMiddleware)
-	commonRouter.HandleFunc("/fileacls", sendFileACLs).Methods("GET")
+	commonRouter.HandleFunc("/fileacls", types.SendFilesACLs).Methods("GET")
 
 	// Create admin routes, all admin secured
 	adminRouter := router.PathPrefix("/api/admin").Subrouter()
@@ -39,12 +41,12 @@ func main() {
 	}
 	adminRouter.Use(adminAuth.ValidateJWTMiddleware)
 	adminRouter.HandleFunc("/testadmin", testEndpoint)
-	adminRouter.HandleFunc("/users", sendUsers).Methods("GET")
-	adminRouter.HandleFunc("/users", security.SetUsers).Methods("POST")
+	adminRouter.HandleFunc("/users", types.SendUsers).Methods("GET")
+	adminRouter.HandleFunc("/users", types.SetUsers).Methods("POST")
 
 	// Create webdav routes according to filesacl.json
 	// For each ACL, create a route with a webdav handler that match the route, with the ACL permissions and methods
-	fileACLs, err := getFileACLs()
+	fileACLs, err := types.ACLsFromJSONFile("./config/filesacls.json")
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -63,29 +65,7 @@ func main() {
 			}
 		}
 	}
-
-	log.Fatal(http.ListenAndServe(":2080", router))
-}
-
-func getFileACLs() ([]types.FileACL, error) {
-	var fileACLs []types.FileACL
-	aclFile, err := os.Open("./config/filesacl.json")
-	defer aclFile.Close()
-	if err != nil {
-		fmt.Println(err.Error())
-		return fileACLs, err
-	}
-	err = json.NewDecoder(aclFile).Decode(&fileACLs)
-	return fileACLs, err
-}
-
-func sendFileACLs(w http.ResponseWriter, req *http.Request) {
-	fileACLs, error := getFileACLs()
-	if error != nil {
-		http.Error(w, error.Error(), 400)
-	} else {
-		json.NewEncoder(w).Encode(fileACLs)
-	}
+	return router
 }
 
 func webdavLogger(r *http.Request, err error) {
@@ -93,14 +73,5 @@ func webdavLogger(r *http.Request, err error) {
 		log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
 	} else {
 		log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
-	}
-}
-
-func sendUsers(w http.ResponseWriter, req *http.Request) {
-	users, error := security.GetUsers()
-	if error != nil {
-		http.Error(w, error.Error(), 400)
-	} else {
-		json.NewEncoder(w).Encode(users)
 	}
 }
