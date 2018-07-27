@@ -18,8 +18,18 @@ import (
 
 var jWTSignature = randomString(48)
 
+// AuthenticationMiddleware allow access for users of allowed Roles
+type AuthenticationMiddleware struct {
+	AllowedRoles []string
+}
+
+// // SetAllowedRoles sets the AuthenticationMiddleware allowed roles
+// func (amw *AuthenticationMiddleware) SetAllowedRoles(allowedRoles []string) {
+// 	amw.allowedRoles = allowedRoles
+// }
+
 // ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
-func ValidateJWTMiddleware(next http.HandlerFunc, allowedRoles []string) http.HandlerFunc {
+func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		JWT, errExtractToken := ExtractToken(req)
 		if errExtractToken != nil {
@@ -27,9 +37,6 @@ func ValidateJWTMiddleware(next http.HandlerFunc, allowedRoles []string) http.Ha
 			return
 		}
 		token, errParseToken := jwt.ParseWithClaims(JWT, &types.JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			}
 			return jWTSignature, nil
 		})
 		if errParseToken != nil {
@@ -37,12 +44,12 @@ func ValidateJWTMiddleware(next http.HandlerFunc, allowedRoles []string) http.Ha
 			return
 		}
 		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
-			if err := checkUserRoleIsAllowed(claims.Role, allowedRoles); err == nil {
+			if errRole := checkUserRoleIsAllowed(claims.Role, amw.AllowedRoles); errRole == nil {
 				ctx := context.WithValue(req.Context(), "login", claims.Login)
 				ctx = context.WithValue(ctx, "role", claims.Role)
-				next(w, req.WithContext(ctx))
+				next.ServeHTTP(w, req.WithContext(ctx))
 			} else {
-				http.Error(w, err.Error(), 403)
+				http.Error(w, errRole.Error(), 403)
 			}
 		} else {
 			http.Error(w, "Invalid authorization token", 400)
@@ -129,9 +136,9 @@ func randomString(length int) []byte {
 	return b
 }
 
-// ExtractToken will find a JWT token passed one of three ways: (1) as the Authorization
-// header in the form `Bearer <JWT Token>`; (2) as a cookie named `jwt_token`; (3) as
-// a URL query paramter of the form https://example.com?token=<JWT token>
+// ExtractToken from Authorization header in the form `Bearer <JWT Token>`
+// OR in an cookie named `jwt_token`
+// OR a URL query paramter of the form https://example.com?token=<JWT token>
 func ExtractToken(r *http.Request) (string, error) {
 	jwtHeader := strings.Split(r.Header.Get("Authorization"), " ")
 	if jwtHeader[0] == "Bearer" && len(jwtHeader) == 2 {
