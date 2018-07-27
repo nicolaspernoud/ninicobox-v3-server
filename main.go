@@ -1,12 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
+	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 	"golang.org/x/net/webdav"
 )
 
@@ -31,22 +34,45 @@ func main() {
 
 	// Create webdav routes according to filesacl.json
 	// For each ACL, create a route with a webdav handler that match the route, with the ACL permissions and methods
-	//router.HandleFunc("/api/files/route name", security.ValidateJWTMiddleware(webdavhandler, []string{"admin"})).Methods("GET", or more)
-	webdavHandler := &webdav.Handler{
-		Prefix:     "/api/files",
-		FileSystem: webdav.Dir("/home/nicolas/Images"),
-		LockSystem: webdav.NewMemLS(),
-		Logger: func(r *http.Request, err error) {
-			if err != nil {
-				log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
-			} else {
-				log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
+	fileACLs, err := getFileACLs()
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		for _, acl := range fileACLs {
+			webdavPath := "/api/files/" + acl.Path
+			webdavHandler := &webdav.Handler{
+				Prefix:     webdavPath,
+				FileSystem: webdav.Dir(acl.Directory),
+				LockSystem: webdav.NewMemLS(),
+				Logger:     webdavLogger,
 			}
-		},
+			if acl.Permissions == "rw" {
+				router.PathPrefix(webdavPath).Handler(security.ValidateJWTMiddleware(webdavHandler, acl.Roles))
+			} else {
+				router.PathPrefix(webdavPath).Handler(security.ValidateJWTMiddleware(webdavHandler, acl.Roles)).Methods("PROPFIND", "GET")
+			}
+		}
 	}
 
-	router.PathPrefix("/api/files").Handler(webdavHandler)
-
-	//router.HandleFunc("/api/test", security.ValidateJWTMiddleware(TestEndpoint, ))
 	log.Fatal(http.ListenAndServe(":2080", router))
+}
+
+func getFileACLs() ([]types.FileACL, error) {
+	var fileACLs []types.FileACL
+	aclFile, err := os.Open("./config/filesacl.json")
+	defer aclFile.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+		return fileACLs, err
+	}
+	err = json.NewDecoder(aclFile).Decode(&fileACLs)
+	return fileACLs, err
+}
+
+func webdavLogger(r *http.Request, err error) {
+	if err != nil {
+		log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
+	} else {
+		log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
+	}
 }

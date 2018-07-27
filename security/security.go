@@ -30,6 +30,11 @@ type AuthenticationMiddleware struct {
 
 // ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
 func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) http.Handler {
+	return ValidateJWTMiddleware(next, amw.AllowedRoles)
+}
+
+// ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
+func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		JWT, errExtractToken := ExtractToken(req)
 		if errExtractToken != nil {
@@ -44,7 +49,7 @@ func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) ht
 			return
 		}
 		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
-			if errRole := checkUserRoleIsAllowed(claims.Role, amw.AllowedRoles); errRole == nil {
+			if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil {
 				ctx := context.WithValue(req.Context(), "login", claims.Login)
 				ctx = context.WithValue(ctx, "role", claims.Role)
 				next.ServeHTTP(w, req.WithContext(ctx))

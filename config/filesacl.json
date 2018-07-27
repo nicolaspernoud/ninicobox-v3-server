@@ -1,20 +1,23 @@
 [
     {
-        "name": "Users Only",
-        "basepath": "../data/users",
+        "name": "Users Read Only",
+        "path": "usersro",
+        "directory": "./data/admins",
         "roles" : ["user"],
         "permissions": "r"
     },
     {
-        "name": "Admins Only RW",
-        "basepath": "../data/admins",
-        "roles" : ["admin"],
+        "name": "Users Read Write",
+        "path": "usersrw",
+        "directory": "./data/users",
+        "roles" : ["user", "admin"],
         "permissions": "rw"
     },
     {
-        "name": "Admins Only R",
-        "basepath": "../data/users",
+        "name": "Admins Read Write",
+        "path": "adminsrw",
+        "directory": "./data/admins",
         "roles" : ["admin"],
-        "permissions": "r"
+        "permissions": "rw"
     }
 ]
