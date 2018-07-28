@@ -17,6 +17,14 @@ type JWTPayload struct {
 	jwt.StandardClaims
 }
 
+// ShareTokenPayload represents the payload of a share token. A share token is a special token allowing access to a very specific path for an unidentified user
+type ShareTokenPayload struct {
+	Role             string `json:"role"`
+	Path             string `json:"path"`
+	SharingUserLogin string `json:"sharingUserLogin"`
+	jwt.StandardClaims
+}
+
 // JwtToken represents a JWT token
 type JwtToken struct {
 	Token string `json:"token"`

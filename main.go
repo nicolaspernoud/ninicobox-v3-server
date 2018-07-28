@@ -30,6 +30,7 @@ func createMainRouter() http.Handler {
 	}
 	commonRouter.Use(commonAuth.ValidateJWTMiddleware)
 	commonRouter.HandleFunc("/fileacls", types.SendFilesACLs).Methods("GET")
+	commonRouter.HandleFunc("/getsharetoken", security.GetShareToken).Methods("POST")
 
 	// Create admin routes, all admin secured
 	adminRouter := router.PathPrefix("/api/admin").Subrouter()
