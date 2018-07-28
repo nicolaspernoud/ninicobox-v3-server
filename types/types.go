@@ -144,6 +144,62 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Infos represents global infos shared by the server with the client
+type Infos struct {
+	ServerVersion string     `json:"server_version"`
+	ClientVersion string     `json:"client_version"`
+	Bookmarks     []Bookmark `json:"bookmarks"`
+}
+
+// Bookmark represents a bookmark shared by the server with the client into the infos
+type Bookmark struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	Icon string `json:"icon"`
+}
+
+// SendInfos send infos as response from an http requests
+func SendInfos(w http.ResponseWriter, req *http.Request) {
+	infos, error := InfosFromJSONFiles()
+	if error != nil {
+		http.Error(w, error.Error(), 400)
+	} else {
+		json.NewEncoder(w).Encode(infos)
+	}
+}
+
+// InfosFromJSONFiles returns Infos gotten from several json files
+func InfosFromJSONFiles() (Infos, error) {
+	// Get the client version
+	var clientPackage interface{}
+	jsonFile, err := os.Open("./client_package.json")
+	defer jsonFile.Close()
+	if err != nil {
+		return Infos{}, err
+	}
+	err = json.NewDecoder(jsonFile).Decode(&clientPackage)
+	clientVersion := clientPackage.(map[string]interface{})["version"].(string)
+
+	// Get the server version
+
+	// Get the bookmarks
+	var bookmarks []Bookmark
+	jsonFile, err = os.Open("./config/bookmarks.json")
+	defer jsonFile.Close()
+	if err != nil {
+		return Infos{}, err
+	}
+	err = json.NewDecoder(jsonFile).Decode(&bookmarks)
+	if err != nil {
+		return Infos{}, err
+	}
+	return Infos{
+		ServerVersion: "wip",
+		ClientVersion: clientVersion,
+		Bookmarks:     bookmarks,
+	}, nil
+}
+
 func structToJSONFile(structure interface{}, file string) error {
 	jsonData, err := json.Marshal(structure)
 	if err != nil {

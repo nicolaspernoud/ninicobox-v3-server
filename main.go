@@ -21,6 +21,7 @@ func createMainRouter() http.Handler {
 
 	// Create login unsecured routes
 	router.HandleFunc("/api/login", security.Authenticate).Methods("POST")
+	router.HandleFunc("/api/infos", types.SendInfos).Methods("GET")
 
 	// Create routes secured for all authenticated users
 	commonRouter := router.PathPrefix("/api/common").Subrouter()
