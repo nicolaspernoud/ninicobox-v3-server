@@ -64,16 +64,23 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 	var users []User
 	if req.Body == nil {
 		http.Error(w, "Please send a request body", 400)
+		return
 	}
 	jsonErr := json.NewDecoder(req.Body).Decode(&users)
 	if jsonErr != nil {
 		http.Error(w, jsonErr.Error(), 400)
+		return
 	}
 	for key, user := range users {
+		if user.Password == "" && user.PasswordHash == "" {
+			http.Error(w, "Passwords cannot be blank", 400)
+			return
+		}
 		if user.Password != "" {
 			hash, error := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 			if error != nil {
 				http.Error(w, error.Error(), 400)
+				return
 			}
 			users[key].PasswordHash = string(hash)
 			users[key].Password = ""
@@ -83,6 +90,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 	err := UsersToJSONFile(&users, "./config/users.json")
 	if err != nil {
 		http.Error(w, err.Error(), 400)
+		return
 	}
 	fmt.Fprintf(w, "Users updated")
 }

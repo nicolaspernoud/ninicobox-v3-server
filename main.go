@@ -11,10 +11,6 @@ import (
 	"golang.org/x/net/webdav"
 )
 
-func testEndpoint(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "User is %v, and has role %v", req.Context().Value("login"), req.Context().Value("role"))
-}
-
 func main() {
 	fmt.Println("Starting the application...")
 	log.Fatal(http.ListenAndServe(":2080", createMainRouter()))
@@ -40,7 +36,6 @@ func createMainRouter() http.Handler {
 		AllowedRoles: []string{"admin"},
 	}
 	adminRouter.Use(adminAuth.ValidateJWTMiddleware)
-	adminRouter.HandleFunc("/testadmin", testEndpoint)
 	adminRouter.HandleFunc("/users", types.SendUsers).Methods("GET")
 	adminRouter.HandleFunc("/users", types.SetUsers).Methods("POST")
 
