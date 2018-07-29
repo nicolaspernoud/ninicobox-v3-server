@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strings"
@@ -40,44 +41,27 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			http.Error(w, errExtractToken.Error(), 401)
 			return
 		}
-		// Try to parse the token as a normal token
 		token, errParseToken := jwt.ParseWithClaims(JWT, &types.JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
 			return jWTSignature, nil
 		})
 		if errParseToken != nil {
-			// Try to parse the token as a share token ...
-			token, errParseToken = jwt.ParseWithClaims(JWT, &types.ShareTokenPayload{}, func(token *jwt.Token) (interface{}, error) {
-				return jWTSignature, nil
-			})
-			if errParseToken != nil {
-				http.Error(w, errParseToken.Error(), 400)
+			http.Error(w, errParseToken.Error(), 400)
+			return
+		}
+		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
+			if pathNotMatched := claims.Path != "" && claims.Path != req.URL.Path; pathNotMatched {
+				http.Error(w, "The share token can only be used for the given path", 403)
 				return
 			}
-			// ... continue trying to parse the token as a share token
-			if claims, ok := token.Claims.(*types.ShareTokenPayload); ok && token.Valid {
-				// Check if the role herited from the sharing user is allowed and if the requested path is exactly the allowed one
-				if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil && claims.Path == req.URL.Path {
-					ctx := context.WithValue(req.Context(), contextLogin, claims.SharingUserLogin)
-					ctx = context.WithValue(ctx, contextRole, claims.Role)
-					next.ServeHTTP(w, req.WithContext(ctx))
-				} else {
-					http.Error(w, errRole.Error(), 403)
-				}
+			if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil {
+				ctx := context.WithValue(req.Context(), contextLogin, claims.Login)
+				ctx = context.WithValue(ctx, contextRole, claims.Role)
+				next.ServeHTTP(w, req.WithContext(ctx))
 			} else {
-				http.Error(w, "Invalid authorization token", 400)
+				http.Error(w, errRole.Error(), 403)
 			}
 		} else {
-			if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
-				if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil {
-					ctx := context.WithValue(req.Context(), contextLogin, claims.Login)
-					ctx = context.WithValue(ctx, contextRole, claims.Role)
-					next.ServeHTTP(w, req.WithContext(ctx))
-				} else {
-					http.Error(w, errRole.Error(), 403)
-				}
-			} else {
-				http.Error(w, "Invalid authorization token", 400)
-			}
+			http.Error(w, "Invalid authorization token", 400)
 		}
 	})
 }
@@ -110,31 +94,41 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, error.Error(), 400)
 		return
 	}
-	json.NewEncoder(w).Encode(types.JwtToken{Token: tokenString})
+	fmt.Fprintf(w, tokenString)
 }
 
 // GetShareToken provide a token to access the ressource on a given path
 func GetShareToken(w http.ResponseWriter, req *http.Request) {
-	var shareTokenPL types.ShareTokenPayload
-	error := json.NewDecoder(req.Body).Decode(&shareTokenPL)
+	body, error := ioutil.ReadAll(req.Body)
 	if error != nil {
 		http.Error(w, error.Error(), 400)
 		return
 	}
-	// Get the user role from the request
-	shareTokenPL.Role = req.Context().Value(contextRole).(string)
-	shareTokenPL.SharingUserLogin = req.Context().Value(contextLogin).(string)
-	shareTokenPL.ExpiresAt = time.Now().Add(time.Hour * time.Duration(24*7)).Unix()
-	shareTokenPL.IssuedAt = time.Now().Unix()
-
+	path := string(body)
+	if !strings.HasPrefix(path, "/api/files") {
+		http.Error(w, "Path cannot be empty, and must began with /api/files", 400)
+		return
+	}
+	shareTokenUser := types.User{
+		Login:            "share",
+		Role:             req.Context().Value(contextRole).(string),
+		Path:             path,
+		SharingUserLogin: req.Context().Value(contextLogin).(string),
+	}
 	// If user is found, create and send a JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, shareTokenPL)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
+		User: shareTokenUser,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * time.Duration(24*7)).Unix(),
+			IssuedAt:  time.Now().Unix(),
+		},
+	})
 	tokenString, error := token.SignedString(jWTSignature)
 	if error != nil {
 		http.Error(w, error.Error(), 400)
 		return
 	}
-	json.NewEncoder(w).Encode(types.JwtToken{Token: tokenString})
+	fmt.Fprintf(w, tokenString)
 }
 
 func checkUserRoleIsAllowed(userRole string, allowedRoles []string) error {
