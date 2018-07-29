@@ -21,3 +21,13 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iO
 
 GET http://localhost:2080/api/files/usersrw/File%20users%2002.txt
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwibG9naW4iOiJzaGFyZSIsIm5hbWUiOiIiLCJzdXJuYW1lIjoiIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIiLCJwYXRoIjoiL2FwaS9maWxlcy91c2Vyc3J3L0ZpbGUgdXNlcnMgMDEudHh0Iiwic2hhcmluZ1VzZXJMb2dpbiI6InVzZXIiLCJleHAiOjE1MzM0NzEwNDMsImlhdCI6MTUzMjg2NjI0M30.mdkM-abABf1RHgq8wuPGeqOEF58-lIi2xGfmDXNCYcI
+
+GET http://www.proxy.com:2080
+
+POST http://www.ninicobox.com:2080/api/login HTTP/1.1
+Content-Type: application/json
+
+{
+    "login": "admin",
+    "password": "password"
+}

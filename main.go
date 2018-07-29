@@ -1,24 +1,65 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
+	"github.com/nicolaspernoud/ninicobox-v3-server/webfront"
 	"golang.org/x/net/webdav"
+)
+
+var (
+	letsCacheDir = flag.String("letsencrypt_cache", "", "letsencrypt cache `directory` (default is to disable HTTPS)")
+	ruleFile     = flag.String("rules", "./config/proxys.json", "rule definition `file`")
+	pollInterval = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
 )
 
 func main() {
 	fmt.Println("Starting the application...")
-	log.Fatal(http.ListenAndServe(":2080", createMainRouter()))
+
+	// Parse the flags
+	flag.Parse()
+
+	// Create the webfront handler
+	webFrontServer, err := webfront.NewServer(*ruleFile, *pollInterval)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//httpFD, _ := strconv.Atoi(os.Getenv("RUNSIT_PORTFD_http"))
+	//httpsFD, _ := strconv.Atoi(os.Getenv("RUNSIT_PORTFD_https"))
+	var webFrontHandler http.Handler = webFrontServer
+
+	// Put it together into the main handler
+	mainRouter := mux.NewRouter()
+	businessSubRouter := mainRouter.Host("www.ninicobox.com").Subrouter()
+	setBusinessSubRouter(businessSubRouter)
+
+	mainRouter.PathPrefix("/").Handler(webFrontHandler)
+	/* 		if *letsCacheDir != "" {
+		m := &autocert.Manager{
+			Cache:      autocert.DirCache(*letsCacheDir),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: s.hostPolicy,
+		}
+		c := tls.Config{GetCertificate: m.GetCertificate}
+		l := tls.NewListener(listen(httpsFD, ":https"), &c)
+		go func() {
+			log.Fatal(http.Serve(l, h))
+		}()
+		h = m.HTTPHandler(h)
+	} */
+	//log.Fatal(http.Serve(listen(httpFD, *httpAddr), h))
+
+	log.Fatal(http.ListenAndServe(":2080", mainRouter))
 }
 
-func createMainRouter() http.Handler {
-	router := mux.NewRouter()
-
+func setBusinessSubRouter(router *mux.Router) {
 	// Create login unsecured routes
 	router.HandleFunc("/api/login", security.Authenticate).Methods("POST")
 	router.HandleFunc("/api/infos", types.SendInfos).Methods("GET")
@@ -62,7 +103,6 @@ func createMainRouter() http.Handler {
 			}
 		}
 	}
-	return router
 }
 
 func webdavLogger(r *http.Request, err error) {
