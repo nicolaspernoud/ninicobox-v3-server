@@ -22,9 +22,9 @@ func Test_MainRouter(t *testing.T) {
 
 	// === Try to access the resources as an unidentified user ===
 	// Do a login with an unknown user
-	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "unknownuser","password": "password"}`, http.StatusBadRequest, `User not found`)
+	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "unknownuser","password": "password"}`, http.StatusForbidden, `User not found`)
 	// Do a login with a known user but bad password
-	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "badpassword"}`, http.StatusBadRequest, `User not found`)
+	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "badpassword"}`, http.StatusForbidden, `User not found`)
 	// Try to get the files access control lists
 	tester.DoRequest(t, router, "GET", "/api/common/filesacls", "", "", http.StatusUnauthorized, "no token found")
 	// Try to get the users
@@ -82,7 +82,7 @@ func Test_MainRouter(t *testing.T) {
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsers, http.StatusOK, `[{"id":1,"login":"admin"`)
 	// Try to login with old password
-	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusBadRequest, `User not found`)
+	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusForbidden, `User not found`)
 	// Update the user to revert to old password
 	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, initialUsers, http.StatusOK, `[{"id":1,"login":"admin"`)
 	// Try again to login

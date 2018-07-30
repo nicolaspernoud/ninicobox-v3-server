@@ -2,6 +2,7 @@ package security
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -147,6 +148,15 @@ func ExtractToken(r *http.Request) (string, error) {
 	jwtHeader := strings.Split(r.Header.Get("Authorization"), " ")
 	if jwtHeader[0] == "Bearer" && len(jwtHeader) == 2 {
 		return jwtHeader[1], nil
+	}
+
+	// try to use the basic auth header instead
+	if jwtHeader[0] == "Basic" && len(jwtHeader) == 2 {
+		decoded, err := base64.StdEncoding.DecodeString(jwtHeader[1])
+		if err == nil {
+			jwtHeader = strings.Split(string(decoded), ":")
+			return jwtHeader[1], nil
+		}
 	}
 
 	jwtCookie, err := r.Cookie("jwt_token")

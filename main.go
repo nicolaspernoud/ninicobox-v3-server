@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/handlers"
@@ -43,6 +44,7 @@ func main() {
 	setPrincipalSubRouter(principalSubRouter)
 
 	mainRouter.PathPrefix("/").Handler(webFrontHandler)
+	loggedRouter := handlers.LoggingHandler(os.Stdout, mainRouter)
 	/* 		if *letsCacheDir != "" {
 		m := &autocert.Manager{
 			Cache:      autocert.DirCache(*letsCacheDir),
@@ -58,11 +60,11 @@ func main() {
 	} */
 	//log.Fatal(http.Serve(listen(httpFD, *httpAddr), h))
 
-	originsOk := handlers.AllowedOrigins([]string{"*"})
-	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
-	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"})
+	/* 	originsOk := handlers.AllowedOrigins([]string{"*"})
+	   	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
+	   	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"}) */
 
-	log.Fatal(http.ListenAndServe(":2080", handlers.CORS(originsOk, headersOk, methodsOk)(mainRouter)))
+	log.Fatal(http.ListenAndServe(":2080", loggedRouter))
 }
 
 func setPrincipalSubRouter(router *mux.Router) {
