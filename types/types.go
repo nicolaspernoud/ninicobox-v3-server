@@ -1,15 +1,21 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"sync"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// Mutex used to lock file writing
+var lock sync.Mutex
 
 // JWTPayload represents the payload of a JWT
 type JWTPayload struct {
@@ -30,25 +36,10 @@ type User struct {
 	SharingUserLogin string `json:"sharingUserLogin"` // For share token
 }
 
-// UsersToJSONFile write an array of users in a json file
-func UsersToJSONFile(users *[]User, file string) error {
-	return structToJSONFile(users, file)
-}
-
-// UsersFromJSONFile create an array of users from a json file
-func UsersFromJSONFile(file string) ([]User, error) {
-	var users []User
-	jsonFile, err := os.Open(file)
-	defer jsonFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	return users, json.NewDecoder(jsonFile).Decode(&users)
-}
-
 // SendUsers send users as response from an http requests
 func SendUsers(w http.ResponseWriter, req *http.Request) {
-	users, error := UsersFromJSONFile("./config/users.json")
+	var users []User
+	error := Load("./config/users.json", &users)
 	if error != nil {
 		http.Error(w, error.Error(), 400)
 	} else {
@@ -84,7 +75,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	err := UsersToJSONFile(&users, "./config/users.json")
+	err := Save("./config/users.json", &users)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -95,7 +86,8 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 // MatchUser attempt to find the given user against users in configuration file
 func MatchUser(sentUser User) (User, error) {
 	var emptyUser User
-	users, err := UsersFromJSONFile("./config/users.json")
+	var users []User
+	err := Load("./config/users.json", &users)
 	if err != nil {
 		fmt.Println(err.Error())
 		return emptyUser, err
@@ -120,20 +112,10 @@ type FilesACL struct {
 	Permissions string   `json:"permissions"`
 }
 
-// ACLsFromJSONFile create an array of access control lists from a json file
-func ACLsFromJSONFile(file string) ([]FilesACL, error) {
-	var filesacls []FilesACL
-	jsonFile, err := os.Open(file)
-	defer jsonFile.Close()
-	if err != nil {
-		return nil, err
-	}
-	return filesacls, json.NewDecoder(jsonFile).Decode(&filesacls)
-}
-
 // SendFilesACLs send files acls as response from an http requests
 func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
-	filesacls, error := ACLsFromJSONFile("./config/filesacls.json")
+	var filesacls []FilesACL
+	error := Load("./config/filesacls.json", &filesacls)
 	if error != nil {
 		http.Error(w, error.Error(), 400)
 	} else {
@@ -169,24 +151,17 @@ func SendInfos(w http.ResponseWriter, req *http.Request) {
 func InfosFromJSONFiles() (Infos, error) {
 	// Get the client version
 	var clientPackage interface{}
-	jsonFile, err := os.Open("./client_package.json")
-	defer jsonFile.Close()
+	err := Load("./client_package.json", &clientPackage)
 	if err != nil {
 		return Infos{}, err
 	}
-	err = json.NewDecoder(jsonFile).Decode(&clientPackage)
 	clientVersion := clientPackage.(map[string]interface{})["version"].(string)
 
 	// Get the server version
 
 	// Get the bookmarks
 	var bookmarks []Bookmark
-	jsonFile, err = os.Open("./config/bookmarks.json")
-	defer jsonFile.Close()
-	if err != nil {
-		return Infos{}, err
-	}
-	err = json.NewDecoder(jsonFile).Decode(&bookmarks)
+	err = Load("./config/bookmarks.json", &bookmarks)
 	if err != nil {
 		return Infos{}, err
 	}
@@ -197,22 +172,45 @@ func InfosFromJSONFiles() (Infos, error) {
 	}, nil
 }
 
-func structToJSONFile(structure interface{}, file string) error {
-	jsonData, err := json.Marshal(structure)
+// Save saves a representation of v to the file at path.
+func Save(path string, v interface{}) error {
+	lock.Lock()
+	defer lock.Unlock()
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	jsonFile, err := os.Create(file)
+	defer f.Close()
+	r, err := Marshal(v)
 	if err != nil {
 		return err
 	}
-	_, err = jsonFile.Write(jsonData)
+	_, err = io.Copy(f, r)
+	return err
+}
+
+// Load loads the file at path into v. Use os.IsNotExist() to see if the returned error is due to the file being missing.
+func Load(path string, v interface{}) error {
+	lock.Lock()
+	defer lock.Unlock()
+	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	err = jsonFile.Close()
+	defer f.Close()
+	return Unmarshal(f, v)
+}
+
+// Marshal is a function that marshals the object into an io.Reader. By default, it uses the JSON marshaller.
+var Marshal = func(v interface{}) (io.Reader, error) {
+	b, err := json.MarshalIndent(v, "", "\t")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return bytes.NewReader(b), nil
+}
+
+// Unmarshal is a function that unmarshals the data from the reader into the specified value. By default, it uses the JSON unmarshaller.
+var Unmarshal = func(r io.Reader, v interface{}) error {
+	return json.NewDecoder(r).Decode(v)
 }

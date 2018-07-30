@@ -84,11 +84,12 @@ func setBusinessSubRouter(router *mux.Router) {
 
 	// Create webdav routes according to filesacl.json
 	// For each ACL, create a route with a webdav handler that match the route, with the ACL permissions and methods
-	fileACLs, err := types.ACLsFromJSONFile("./config/filesacls.json")
+	var filesACLs []types.FilesACL
+	err := types.Load("./config/filesacls.json", &filesACLs)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
-		for _, acl := range fileACLs {
+		for _, acl := range filesACLs {
 			webdavPath := "/api/files/" + acl.Path
 			webdavHandler := &webdav.Handler{
 				Prefix:     webdavPath,
