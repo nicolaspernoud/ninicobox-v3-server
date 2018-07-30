@@ -78,7 +78,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	var user types.User
 	user, error = types.MatchUser(sentUser)
 	if error != nil {
-		http.Error(w, error.Error(), 400)
+		http.Error(w, error.Error(), 403)
 		return
 	}
 	// If user is found, create and send a JWT

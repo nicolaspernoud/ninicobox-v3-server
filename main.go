@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
@@ -15,9 +16,10 @@ import (
 )
 
 var (
-	letsCacheDir = flag.String("letsencrypt_cache", "", "letsencrypt cache `directory` (default is to disable HTTPS)")
-	ruleFile     = flag.String("rules", "./config/proxys.json", "rule definition `file`")
-	pollInterval = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
+	letsCacheDir      = flag.String("letsencrypt_cache", "", "letsencrypt cache `directory` (default is to disable HTTPS)")
+	ruleFile          = flag.String("rules", "./config/proxys.json", "rule definition `file`")
+	pollInterval      = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
+	principalHostName = flag.String("hostname", "localhost", "Principal hostname, default to localhost")
 )
 
 func main() {
@@ -37,8 +39,8 @@ func main() {
 
 	// Put it together into the main handler
 	mainRouter := mux.NewRouter()
-	businessSubRouter := mainRouter.Host("www.ninicobox.com").Subrouter()
-	setBusinessSubRouter(businessSubRouter)
+	principalSubRouter := mainRouter.Host(*principalHostName).Subrouter()
+	setPrincipalSubRouter(principalSubRouter)
 
 	mainRouter.PathPrefix("/").Handler(webFrontHandler)
 	/* 		if *letsCacheDir != "" {
@@ -56,10 +58,14 @@ func main() {
 	} */
 	//log.Fatal(http.Serve(listen(httpFD, *httpAddr), h))
 
-	log.Fatal(http.ListenAndServe(":2080", mainRouter))
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
+	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"})
+
+	log.Fatal(http.ListenAndServe(":2080", handlers.CORS(originsOk, headersOk, methodsOk)(mainRouter)))
 }
 
-func setBusinessSubRouter(router *mux.Router) {
+func setPrincipalSubRouter(router *mux.Router) {
 	// Create login unsecured routes
 	router.HandleFunc("/api/login", security.Authenticate).Methods("POST")
 	router.HandleFunc("/api/infos", types.SendInfos).Methods("GET")
@@ -70,7 +76,7 @@ func setBusinessSubRouter(router *mux.Router) {
 		AllowedRoles: []string{"all"},
 	}
 	commonRouter.Use(commonAuth.ValidateJWTMiddleware)
-	commonRouter.HandleFunc("/fileacls", types.SendFilesACLs).Methods("GET")
+	commonRouter.HandleFunc("/filesacls", types.SendFilesACLs).Methods("GET")
 	commonRouter.HandleFunc("/getsharetoken", security.GetShareToken).Methods("POST")
 
 	// Create admin routes, all admin secured

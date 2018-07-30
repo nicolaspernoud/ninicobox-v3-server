@@ -80,7 +80,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	fmt.Fprintf(w, "Users updated")
+	SendUsers(w, req)
 }
 
 // MatchUser attempt to find the given user against users in configuration file

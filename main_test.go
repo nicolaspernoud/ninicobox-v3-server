@@ -10,7 +10,7 @@ import (
 
 func Test_MainRouter(t *testing.T) {
 	router := mux.NewRouter()
-	setBusinessSubRouter(router)
+	setPrincipalSubRouter(router)
 
 	initialUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	updatedUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
@@ -26,7 +26,7 @@ func Test_MainRouter(t *testing.T) {
 	// Do a login with a known user but bad password
 	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "badpassword"}`, http.StatusBadRequest, `User not found`)
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/fileacls", "", "", http.StatusUnauthorized, "no token found")
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", "", "", http.StatusUnauthorized, "no token found")
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", "", "", http.StatusUnauthorized, "no token found")
 	// Try to update the users
@@ -44,7 +44,7 @@ func Test_MainRouter(t *testing.T) {
 	userHeader := "Bearer " + tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got user auth header: %v", userHeader)
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/fileacls", userHeader, "", http.StatusOK, `[{"name":"Users Read Only"`)
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", userHeader, "", http.StatusOK, `[{"name":"Users Read Only"`)
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", userHeader, "", http.StatusForbidden, "User has role user, which is not in allowed roles ([admin])")
 	// Try to update the users
@@ -74,17 +74,17 @@ func Test_MainRouter(t *testing.T) {
 	adminHeader := "Bearer " + tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got admin auth header: %v", adminHeader)
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/fileacls", adminHeader, "", http.StatusOK, `[{"name":"Users Read Only"`)
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", adminHeader, "", http.StatusOK, `[{"name":"Users Read Only"`)
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", adminHeader, "", http.StatusOK, `[{"id":1,"login":"admin"`)
 	// Try to update the users with a blank password
 	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsersBlankPassword, http.StatusBadRequest, "Passwords cannot be blank")
 	// Try to update the users
-	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsers, http.StatusOK, "Users updated")
+	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsers, http.StatusOK, `[{"id":1,"login":"admin"`)
 	// Try to login with old password
 	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusBadRequest, `User not found`)
 	// Update the user to revert to old password
-	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, initialUsers, http.StatusOK, "Users updated")
+	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, initialUsers, http.StatusOK, `[{"id":1,"login":"admin"`)
 	// Try again to login
 	adminHeader = "Bearer " + tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	// Try to read a webdav resource

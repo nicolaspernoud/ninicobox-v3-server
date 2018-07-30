@@ -31,3 +31,7 @@ Content-Type: application/json
     "login": "admin",
     "password": "password"
 }
+
+GET http://localhost:2080/api/infos
+
+OPTIONS http://localhost:2080/api/login
