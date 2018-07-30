@@ -32,8 +32,8 @@ type User struct {
 	Role             string `json:"role"`
 	PasswordHash     string `json:"passwordHash"`
 	Password         string `json:"password,omitempty"`
-	Path             string `json:"path"`             // For share token
-	SharingUserLogin string `json:"sharingUserLogin"` // For share token
+	Path             string `json:"path,omitempty"`             // For share token
+	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
 }
 
 // SendUsers send users as response from an http requests
