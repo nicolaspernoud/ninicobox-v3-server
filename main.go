@@ -12,8 +12,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
+	"github.com/nicolaspernoud/ninicobox-v3-server/webdavaug"
 	"github.com/nicolaspernoud/ninicobox-v3-server/webfront"
-	"golang.org/x/net/webdav"
 )
 
 var (
@@ -99,25 +99,8 @@ func setPrincipalSubRouter(router *mux.Router) {
 	} else {
 		for _, acl := range filesACLs {
 			webdavPath := "/api/files/" + acl.Path
-			webdavHandler := &webdav.Handler{
-				Prefix:     webdavPath,
-				FileSystem: webdav.Dir(acl.Directory),
-				LockSystem: webdav.NewMemLS(),
-				Logger:     webdavLogger,
-			}
-			if acl.Permissions == "rw" {
-				router.PathPrefix(webdavPath).Handler(security.ValidateJWTMiddleware(webdavHandler, acl.Roles))
-			} else {
-				router.PathPrefix(webdavPath).Handler(security.ValidateJWTMiddleware(webdavHandler, acl.Roles)).Methods("PROPFIND", "GET")
-			}
+			webdavHandler := webdavaug.New(webdavPath, acl.Directory, acl.Roles, acl.Permissions == "rw")
+			router.PathPrefix(webdavPath).Handler(webdavHandler)
 		}
-	}
-}
-
-func webdavLogger(r *http.Request, err error) {
-	if err != nil {
-		log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
-	} else {
-		log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
 	}
 }
