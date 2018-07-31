@@ -60,11 +60,11 @@ func main() {
 	} */
 	//log.Fatal(http.Serve(listen(httpFD, *httpAddr), h))
 
-	/* 	originsOk := handlers.AllowedOrigins([]string{"*"})
-	   	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
-	   	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"}) */
+	originsOk := handlers.AllowedOrigins([]string{"*"})
+	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
+	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"})
 
-	log.Fatal(http.ListenAndServe(":2080", loggedRouter))
+	log.Fatal(http.ListenAndServe(":2080", handlers.CORS(originsOk, headersOk, methodsOk)(loggedRouter)))
 }
 
 func setPrincipalSubRouter(router *mux.Router) {

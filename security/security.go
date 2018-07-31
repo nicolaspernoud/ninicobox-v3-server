@@ -46,7 +46,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			return jWTSignature, nil
 		})
 		if errParseToken != nil {
-			http.Error(w, errParseToken.Error(), 400)
+			http.Error(w, errParseToken.Error(), 403)
 			return
 		}
 		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
