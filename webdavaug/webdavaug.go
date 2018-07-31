@@ -27,7 +27,6 @@ type WebdavAug struct {
 // New create an initialized WebdavAug instance
 func New(prefix string, directory string, allowedRoles []string, canWrite bool) WebdavAug {
 
-	unsecuredFiles := http.StripPrefix(prefix, http.FileServer(http.Dir(directory)))
 	unsecuredZip := http.StripPrefix(prefix, ZipServer(directory))
 	unsecuredWebdav := &webdav.Handler{
 		Prefix:     prefix,
@@ -36,7 +35,6 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool) 
 		Logger:     webdavLogger,
 	}
 
-	files := security.ValidateJWTMiddleware(unsecuredFiles, allowedRoles)
 	zip := security.ValidateJWTMiddleware(unsecuredZip, allowedRoles)
 	webdav := security.ValidateJWTMiddleware(unsecuredWebdav, allowedRoles)
 
@@ -44,7 +42,7 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool) 
 
 	if canWrite {
 		mMux = map[string]http.Handler{
-			"GET":       files,
+			"GET":       webdav,
 			"OPTIONS":   webdav,
 			"PROPFIND":  webdav,
 			"PROPPATCH": webdav,
@@ -58,7 +56,7 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool) 
 		}
 	} else {
 		mMux = map[string]http.Handler{
-			"GET":      files,
+			"GET":      webdav,
 			"OPTIONS":  webdav,
 			"PROPFIND": webdav,
 		}
@@ -84,7 +82,7 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			if !info.IsDir() { // The file will be handled by file server
+			if !info.IsDir() { // The file will be handled by webdav server
 				filename := strings.TrimPrefix(r.URL.Path, wdaug.prefix+"/")
 				w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 			} else {
