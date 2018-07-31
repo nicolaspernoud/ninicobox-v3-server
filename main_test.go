@@ -26,7 +26,7 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "unknownuser","password": "password"}`, http.StatusForbidden, `User not found`)
 	// Do a login with a known user but bad password
 	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "badpassword"}`, http.StatusForbidden, `User not found`)
-	// Try to use a correct signed with the wrong key
+	// Try to use a token signed with the wrong key
 	tester.DoRequest(t, router, "GET", "/api/common/filesacls", wrongAuthHeader, "", http.StatusForbidden, "signature is invalid")
 	// Try to get the files access control lists
 	tester.DoRequest(t, router, "GET", "/api/common/filesacls", "", "", http.StatusUnauthorized, "no token found")
@@ -54,6 +54,8 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "POST", "/api/admin/users", userHeader, updatedUsers, http.StatusForbidden, "User has role user, which is not in allowed roles ([admin])")
 	// Try to read a webdav resource
 	tester.DoRequest(t, router, "GET", "/api/files/usersrw/File users 01.txt", userHeader, "", http.StatusOK, "Lorem ipsum")
+	// Try to walk back the shared path
+	tester.DoRequest(t, router, "GET", "/api/files/usersrw/Folder user 01/../..", userHeader, "", http.StatusMovedPermanently, "")
 	// Try to create a webdav resource
 	tester.DoRequest(t, router, "PUT", "/api/files/adminsrw/Test.txt", userHeader, "This is a test", http.StatusForbidden, "User has role user, which is not in allowed roles ([admin])")
 	// Try to delete a webdav resource

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -50,7 +51,12 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			return
 		}
 		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
-			if pathNotMatched := claims.Path != "" && claims.Path != req.URL.Path; pathNotMatched {
+			urlPath, err := url.Parse(claims.Path)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
+			}
+			urlEncodedPath := urlPath.String()
+			if pathNotMatched := urlEncodedPath != "" && urlEncodedPath != req.URL.EscapedPath(); pathNotMatched {
 				http.Error(w, "The share token can only be used for the given path", 403)
 				return
 			}

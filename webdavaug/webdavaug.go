@@ -1,8 +1,13 @@
 package webdavaug
 
 import (
+	"archive/zip"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
@@ -13,14 +18,17 @@ import (
 // - is secured with basic auth or json web tokens (JWT)
 // - enable download of directories as streamed zip files
 type WebdavAug struct {
-	prefix    string
-	methodMux map[string]http.Handler
+	prefix     string
+	directory  string
+	methodMux  map[string]http.Handler
+	zipHandler http.Handler
 }
 
 // New create an initialized WebdavAug instance
 func New(prefix string, directory string, allowedRoles []string, canWrite bool) WebdavAug {
 
 	unsecuredFiles := http.StripPrefix(prefix, http.FileServer(http.Dir(directory)))
+	unsecuredZip := http.StripPrefix(prefix, ZipServer(directory))
 	unsecuredWebdav := &webdav.Handler{
 		Prefix:     prefix,
 		FileSystem: webdav.Dir(directory),
@@ -29,33 +37,38 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool) 
 	}
 
 	files := security.ValidateJWTMiddleware(unsecuredFiles, allowedRoles)
+	zip := security.ValidateJWTMiddleware(unsecuredZip, allowedRoles)
 	webdav := security.ValidateJWTMiddleware(unsecuredWebdav, allowedRoles)
 
+	var mMux map[string]http.Handler
+
 	if canWrite {
-		return WebdavAug{
-			prefix: prefix,
-			methodMux: map[string]http.Handler{
-				"GET":       files,
-				"OPTIONS":   webdav,
-				"PROPFIND":  webdav,
-				"PROPPATCH": webdav,
-				"MKCOL":     webdav,
-				"COPY":      webdav,
-				"MOVE":      webdav,
-				"LOCK":      webdav,
-				"UNLOCK":    webdav,
-				"DELETE":    webdav,
-				"PUT":       webdav,
-			},
+		mMux = map[string]http.Handler{
+			"GET":       files,
+			"OPTIONS":   webdav,
+			"PROPFIND":  webdav,
+			"PROPPATCH": webdav,
+			"MKCOL":     webdav,
+			"COPY":      webdav,
+			"MOVE":      webdav,
+			"LOCK":      webdav,
+			"UNLOCK":    webdav,
+			"DELETE":    webdav,
+			"PUT":       webdav,
 		}
-	}
-	return WebdavAug{
-		prefix: prefix,
-		methodMux: map[string]http.Handler{
+	} else {
+		mMux = map[string]http.Handler{
 			"GET":      files,
 			"OPTIONS":  webdav,
 			"PROPFIND": webdav,
-		},
+		}
+	}
+
+	return WebdavAug{
+		prefix:     prefix,
+		directory:  directory,
+		methodMux:  mMux,
+		zipHandler: zip,
 	}
 
 }
@@ -63,8 +76,20 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool) 
 func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h, ok := wdaug.methodMux[r.Method]; ok {
 		if r.Method == "GET" {
-			filename := strings.TrimPrefix(r.URL.Path, wdaug.prefix+"/")
-			w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+			// Work out if trying to serve a directory
+			ressource := strings.TrimPrefix(r.URL.Path, wdaug.prefix)
+			fullName := filepath.Join(wdaug.directory, filepath.FromSlash(path.Clean("/"+ressource)))
+			info, err := os.Stat(fullName)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if !info.IsDir() { // The file will be handled by file server
+				filename := strings.TrimPrefix(r.URL.Path, wdaug.prefix+"/")
+				w.Header().Set("Content-Disposition", "attachment; filename="+filename)
+			} else {
+				h = wdaug.zipHandler
+			}
 		}
 		h.ServeHTTP(w, r)
 	} else {
@@ -77,5 +102,83 @@ func webdavLogger(r *http.Request, err error) {
 		log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
 	} else {
 		log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
+	}
+}
+
+type zipHandler struct {
+	root string
+}
+
+// ZipServer serve the content of a directory as streamed zip file
+func ZipServer(root string) http.Handler {
+	return &zipHandler{root}
+}
+
+func (zh *zipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	upath := r.URL.Path
+	if !strings.HasPrefix(upath, "/") {
+		upath = "/" + upath
+		r.URL.Path = upath
+	}
+	zipAndServe(w, r, zh.root, path.Clean(upath))
+}
+
+func zipAndServe(w http.ResponseWriter, r *http.Request, root string, name string) {
+
+	source := filepath.Join(root, filepath.FromSlash(path.Clean("/"+name)))
+
+	archive := zip.NewWriter(w)
+	defer archive.Close()
+
+	info, err := os.Stat(source)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var baseDir string
+	if info.IsDir() {
+		baseDir = filepath.Base(source)
+	}
+
+	err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+
+		if baseDir != "" {
+			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+		}
+
+		if info.IsDir() {
+			header.Name += "/"
+		} else {
+			header.Method = zip.Deflate
+		}
+
+		writer, err := archive.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+
+		if info.IsDir() {
+			return nil
+		}
+
+		file, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		_, err = io.Copy(writer, file)
+		return err
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
 }
