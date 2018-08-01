@@ -57,7 +57,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			}
 			urlEncodedPath := urlPath.String()
 			if pathNotMatched := urlEncodedPath != "" && urlEncodedPath != req.URL.EscapedPath(); pathNotMatched {
-				http.Error(w, "The share token can only be used for the given path", 403)
+				http.Error(w, "the share token can only be used for the given path", 403)
 				return
 			}
 			if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil {
@@ -68,13 +68,17 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				http.Error(w, errRole.Error(), 403)
 			}
 		} else {
-			http.Error(w, "Invalid authorization token", 400)
+			http.Error(w, "invalid authorization token", 400)
 		}
 	})
 }
 
 // Authenticate validate the username and password provided in the function body against a local file and return a token if the user is found
 func Authenticate(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
 	var sentUser types.User
 	error := json.NewDecoder(req.Body).Decode(&sentUser)
 	if error != nil {
@@ -106,6 +110,10 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 
 // GetShareToken provide a token to access the ressource on a given path
 func GetShareToken(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
 	body, error := ioutil.ReadAll(req.Body)
 	if error != nil {
 		http.Error(w, error.Error(), 400)
@@ -113,7 +121,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 	}
 	path := string(body)
 	if !strings.HasPrefix(path, "/api/files") {
-		http.Error(w, "Path cannot be empty, and must began with /api/files", 400)
+		http.Error(w, "path cannot be empty, and must began with /api/files", 400)
 		return
 	}
 	shareTokenUser := types.User{
@@ -144,7 +152,7 @@ func checkUserRoleIsAllowed(userRole string, allowedRoles []string) error {
 			return nil
 		}
 	}
-	return fmt.Errorf("User has role %v, which is not in allowed roles (%v)", userRole, allowedRoles)
+	return fmt.Errorf("user has role %v, which is not in allowed roles (%v)", userRole, allowedRoles)
 }
 
 // ExtractToken from Authorization header in the form `Bearer <JWT Token>`

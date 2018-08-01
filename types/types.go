@@ -51,7 +51,7 @@ func SendUsers(w http.ResponseWriter, req *http.Request) {
 func SetUsers(w http.ResponseWriter, req *http.Request) {
 	var users []User
 	if req.Body == nil {
-		http.Error(w, "Please send a request body", 400)
+		http.Error(w, "please send a request body", 400)
 		return
 	}
 	jsonErr := json.NewDecoder(req.Body).Decode(&users)
@@ -61,7 +61,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 	}
 	for key, user := range users {
 		if user.Password == "" && user.PasswordHash == "" {
-			http.Error(w, "Passwords cannot be blank", 400)
+			http.Error(w, "passwords cannot be blank", 400)
 			return
 		}
 		if user.Password != "" {
@@ -100,7 +100,7 @@ func MatchUser(sentUser User) (User, error) {
 			}
 		}
 	}
-	return emptyUser, errors.New("User not found")
+	return emptyUser, errors.New("user not found")
 }
 
 // FilesACL represents an access control list for an directory exposed with webdav
@@ -114,6 +114,10 @@ type FilesACL struct {
 
 // SendFilesACLs send files acls as response from an http requests
 func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
 	var filesacls []FilesACL
 	error := Load("./config/filesacls.json", &filesacls)
 	if error != nil {
@@ -139,6 +143,10 @@ type Bookmark struct {
 
 // SendInfos send infos as response from an http requests
 func SendInfos(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "method not allowed", 405)
+		return
+	}
 	infos, error := InfosFromJSONFiles()
 	if error != nil {
 		http.Error(w, error.Error(), 400)

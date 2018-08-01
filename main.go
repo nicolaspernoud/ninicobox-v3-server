@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 	"github.com/nicolaspernoud/ninicobox-v3-server/webdavaug"
@@ -38,13 +37,15 @@ func main() {
 	//httpsFD, _ := strconv.Atoi(os.Getenv("RUNSIT_PORTFD_https"))
 	var webFrontHandler http.Handler = webFrontServer
 
-	// Put it together into the main handler
-	mainRouter := mux.NewRouter()
-	principalSubRouter := mainRouter.Host(*principalHostName).Subrouter()
-	setPrincipalSubRouter(principalSubRouter)
+	// Create the main handler
+	mainMux := createMainMux()
 
-	mainRouter.PathPrefix("/").Handler(webFrontHandler)
-	loggedRouter := handlers.LoggingHandler(os.Stdout, mainRouter)
+	// Put it together into the main handler
+	rootMux := http.NewServeMux()
+	rootMux.Handle(*principalHostName, mainMux)
+	rootMux.Handle("/", webFrontHandler)
+
+	loggedRootMux := handlers.LoggingHandler(os.Stdout, rootMux)
 	/* 		if *letsCacheDir != "" {
 		m := &autocert.Manager{
 			Cache:      autocert.DirCache(*letsCacheDir),
@@ -64,31 +65,42 @@ func main() {
 	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
 	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"})
 
-	log.Fatal(http.ListenAndServe(":2080", handlers.CORS(originsOk, headersOk, methodsOk)(loggedRouter)))
+	log.Fatal(http.ListenAndServe(":2080", handlers.CORS(originsOk, headersOk, methodsOk)(loggedRootMux)))
 }
 
-func setPrincipalSubRouter(router *mux.Router) {
+func createMainMux() http.Handler {
+
+	mainMux := http.NewServeMux()
 	// Create login unsecured routes
-	router.HandleFunc("/api/login", security.Authenticate).Methods("POST")
-	router.HandleFunc("/api/infos", types.SendInfos).Methods("GET")
+	mainMux.HandleFunc("/api/login", security.Authenticate)
+	mainMux.HandleFunc("/api/infos", types.SendInfos)
 
 	// Create routes secured for all authenticated users
-	commonRouter := router.PathPrefix("/api/common").Subrouter()
+	commonMux := http.NewServeMux()
+	commonMux.HandleFunc("/filesacls", types.SendFilesACLs)
+	commonMux.HandleFunc("/getsharetoken", security.GetShareToken)
 	commonAuth := security.AuthenticationMiddleware{
 		AllowedRoles: []string{"all"},
 	}
-	commonRouter.Use(commonAuth.ValidateJWTMiddleware)
-	commonRouter.HandleFunc("/filesacls", types.SendFilesACLs).Methods("GET")
-	commonRouter.HandleFunc("/getsharetoken", security.GetShareToken).Methods("POST")
+	mainMux.Handle("/api/common/", http.StripPrefix("/api/common", commonAuth.ValidateJWTMiddleware(commonMux)))
 
 	// Create admin routes, all admin secured
-	adminRouter := router.PathPrefix("/api/admin").Subrouter()
+	adminMux := http.NewServeMux()
+	adminMux.HandleFunc("/users", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodPost {
+			types.SetUsers(w, req)
+			return
+		}
+		if req.Method == http.MethodGet {
+			types.SendUsers(w, req)
+			return
+		}
+		http.Error(w, "method not allowed", 405)
+	})
 	adminAuth := security.AuthenticationMiddleware{
 		AllowedRoles: []string{"admin"},
 	}
-	adminRouter.Use(adminAuth.ValidateJWTMiddleware)
-	adminRouter.HandleFunc("/users", types.SendUsers).Methods("GET")
-	adminRouter.HandleFunc("/users", types.SetUsers).Methods("POST")
+	mainMux.Handle("/api/admin/", http.StripPrefix("/api/admin", adminAuth.ValidateJWTMiddleware(adminMux)))
 
 	// Create webdav routes according to filesacl.json
 	// For each ACL, create a route with a webdav handler that match the route, with the ACL permissions and methods
@@ -98,9 +110,10 @@ func setPrincipalSubRouter(router *mux.Router) {
 		fmt.Println(err.Error())
 	} else {
 		for _, acl := range filesACLs {
-			webdavPath := "/api/files/" + acl.Path
+			webdavPath := "/api/files/" + acl.Path + "/"
 			webdavHandler := webdavaug.New(webdavPath, acl.Directory, acl.Roles, acl.Permissions == "rw")
-			router.PathPrefix(webdavPath).Handler(webdavHandler)
+			mainMux.Handle(webdavPath, webdavHandler)
 		}
 	}
+	return mainMux
 }
