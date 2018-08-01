@@ -1,4 +1,4 @@
-package webfront
+package proxy
 
 import (
 	"bytes"

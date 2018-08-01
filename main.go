@@ -6,20 +6,21 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/nicolaspernoud/ninicobox-v3-server/proxy"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 	"github.com/nicolaspernoud/ninicobox-v3-server/webdavaug"
-	"github.com/nicolaspernoud/ninicobox-v3-server/webfront"
 )
 
 var (
 	letsCacheDir = flag.String("letsencrypt_cache", "", "letsencrypt cache `directory` (default is to disable HTTPS)")
-	ruleFile     = flag.String("rules", "./config/proxys.json", "rule definition `file`")
 	pollInterval = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
 	mainHostName = flag.String("hostname", "localhost", "Main hostname, default to localhost")
 	debugMode    = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT")
+	port         = flag.Int("port", 2080, "HTTP port to serve on")
 )
 
 func main() {
@@ -36,13 +37,13 @@ func main() {
 	security.Init(*debugMode, logger)
 
 	// Create the webfront handler
-	webFrontServer, err := webfront.NewServer(*ruleFile, *pollInterval)
+	proxyServer, err := proxy.NewServer("./config/proxys.json", *pollInterval, *port)
 	if err != nil {
 		log.Fatal(err)
 	}
 	//httpFD, _ := strconv.Atoi(os.Getenv("RUNSIT_PORTFD_http"))
 	//httpsFD, _ := strconv.Atoi(os.Getenv("RUNSIT_PORTFD_https"))
-	var webFrontHandler http.Handler = webFrontServer
+	var proxyHandler http.Handler = proxyServer
 
 	// Create the main handler
 	mainMux := createMainMux()
@@ -50,7 +51,7 @@ func main() {
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
 	rootMux.Handle(*mainHostName+"/", mainMux)
-	rootMux.Handle("/", webFrontHandler)
+	rootMux.Handle("/", proxyHandler)
 
 	/* 		if *letsCacheDir != "" {
 		m := &autocert.Manager{
@@ -68,9 +69,9 @@ func main() {
 	//log.Fatal(http.Serve(listen(httpFD, *httpAddr), h))
 
 	if *debugMode {
-		log.Fatal(http.ListenAndServe(":2080", corsMiddleware(logMiddleware(logger)(rootMux))))
+		log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), corsMiddleware(logMiddleware(logger)(rootMux))))
 	} else {
-		log.Fatal(http.ListenAndServe(":2080", logMiddleware(logger)(rootMux)))
+		log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*port), logMiddleware(logger)(rootMux)))
 	}
 
 }
@@ -100,6 +101,17 @@ func createMainMux() http.Handler {
 		}
 		if req.Method == http.MethodGet {
 			types.SendUsers(w, req)
+			return
+		}
+		http.Error(w, "method not allowed", 405)
+	})
+	adminMux.HandleFunc("/proxys", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodPost {
+			types.SetProxys(w, req)
+			return
+		}
+		if req.Method == http.MethodGet {
+			types.SendProxys(w, req)
 			return
 		}
 		http.Error(w, "method not allowed", 405)

@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 
 	jwt "github.com/dgrijalva/jwt-go"
@@ -178,6 +179,61 @@ func InfosFromJSONFiles() (Infos, error) {
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
+}
+
+// Proxy represents a web server to proxy
+type Proxy struct {
+	Name    string `json:"name"`
+	FromURL string `json:"fromUrl"`
+	ToURL   string `json:"toUrl"`
+	Icon    string `json:"icon"`
+	Rank    string `json:"rank"`
+}
+
+// SendProxys send proxys as response from an http requests
+func SendProxys(w http.ResponseWriter, req *http.Request) {
+	var proxys []Proxy
+	error := Load("./config/proxys.json", &proxys)
+	if error != nil {
+		http.Error(w, error.Error(), 400)
+	} else {
+		json.NewEncoder(w).Encode(proxys)
+	}
+}
+
+// SetProxys sets proxys from an http request
+func SetProxys(w http.ResponseWriter, req *http.Request) {
+	var proxys []Proxy
+	if req.Body == nil {
+		http.Error(w, "please send a request body", 400)
+		return
+	}
+	err := json.NewDecoder(req.Body).Decode(&proxys)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	// Strip schemes from urls
+	for key, val := range proxys {
+		if strings.HasPrefix(val.ToURL, "http://") {
+			proxys[key].ToURL = strings.TrimPrefix(val.ToURL, "http://")
+		}
+		if strings.HasPrefix(val.ToURL, "https://") {
+			proxys[key].ToURL = strings.TrimPrefix(val.ToURL, "https://")
+		}
+		if strings.HasPrefix(val.FromURL, "http://") {
+			proxys[key].FromURL = strings.TrimPrefix(val.FromURL, "http://")
+		}
+		if strings.HasPrefix(val.FromURL, "https://") {
+			proxys[key].FromURL = strings.TrimPrefix(val.FromURL, "https://")
+		}
+	}
+	err = Save("./config/proxys.json", &proxys)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	SendProxys(w, req)
 }
 
 // Save saves a representation of v to the file at path.

@@ -1,4 +1,10 @@
-package webfront
+/*
+
+This package is based upon https://github.com/nf/webfront (Copyright 2011 Google Inc.)
+
+*/
+
+package proxy
 
 import (
 	"context"
@@ -8,10 +14,13 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
+
+var httpPort int
 
 // Server implements an http.Handler that acts as either a reverse proxy or
 // a simple file server, as determined by a rule set.
@@ -23,16 +32,16 @@ type Server struct {
 
 // Rule represents a rule in a configuration file.
 type Rule struct {
-	Host    string // to match against request Host header
-	Forward string // non-empty if reverse proxy
-	Serve   string // non-empty if file server
+	FromURL string // to match against request Host header
+	ToURL   string // non-empty if reverse proxy
 
 	handler http.Handler
 }
 
 // NewServer constructs a Server that reads rules from file with a period
 // specified by poll.
-func NewServer(file string, poll time.Duration) (*Server, error) {
+func NewServer(file string, poll time.Duration, httpPortFromMain int) (*Server, error) {
+	httpPort = httpPortFromMain
 	s := new(Server)
 	if err := s.loadRules(file); err != nil {
 		return nil, err
@@ -62,7 +71,7 @@ func (s *Server) handler(req *http.Request) http.Handler {
 		h = h[:i]
 	}
 	for _, r := range s.rules {
-		if h == r.Host || strings.HasSuffix(h, "."+r.Host) {
+		if h == r.FromURL || strings.HasSuffix(h, "."+r.FromURL) {
 			return r.handler
 		}
 	}
@@ -109,7 +118,7 @@ func (s *Server) hostPolicy(ctx context.Context, host string) error {
 	defer s.mu.RUnlock()
 
 	for _, rule := range s.rules {
-		if host == rule.Host || host == "www."+rule.Host {
+		if host == rule.FromURL || host == "www."+rule.FromURL {
 			return nil
 		}
 	}
@@ -139,7 +148,7 @@ func parseRules(file string) ([]*Rule, error) {
 
 // makeHandler constructs the appropriate Handler for the given Rule.
 func makeHandler(r *Rule) http.Handler {
-	if h := r.Forward; h != "" {
+	if h := r.ToURL; h != "" {
 		return &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				req.URL.Scheme = "http"
@@ -151,15 +160,12 @@ func makeHandler(r *Rule) http.Handler {
 				// Alter the redirect location
 				u, err := res.Location()
 				if err == nil {
-					u.Host = r.Host + ":2080"
+					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
 				return nil
 			},
 		}
-	}
-	if d := r.Serve; d != "" {
-		return http.FileServer(http.Dir(d))
 	}
 	return nil
 }
