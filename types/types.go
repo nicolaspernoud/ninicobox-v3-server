@@ -215,12 +215,6 @@ func SetProxys(w http.ResponseWriter, req *http.Request) {
 	}
 	// Strip schemes from urls
 	for key, val := range proxys {
-		if strings.HasPrefix(val.ToURL, "http://") {
-			proxys[key].ToURL = strings.TrimPrefix(val.ToURL, "http://")
-		}
-		if strings.HasPrefix(val.ToURL, "https://") {
-			proxys[key].ToURL = strings.TrimPrefix(val.ToURL, "https://")
-		}
 		if strings.HasPrefix(val.FromURL, "http://") {
 			proxys[key].FromURL = strings.TrimPrefix(val.FromURL, "http://")
 		}

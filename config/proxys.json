@@ -2,14 +2,14 @@
 	{
 		"name": "Example 1",
 		"fromUrl": "www.myexample.com",
-		"toUrl": "www.example.com",
+		"toUrl": "http://www.example.com",
 		"icon": "redeem",
 		"rank": "1"
 	},
 	{
 		"name": "Example 2",
 		"fromUrl": "www.myexample2.com",
-		"toUrl": "www.example.com",
+		"toUrl": "http://www.example.com",
 		"icon": "redeem",
 		"rank": "2"
 	}

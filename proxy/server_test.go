@@ -16,12 +16,11 @@ func TestServer(t *testing.T) {
 	defer target.Close()
 
 	ruleFile := writeRules([]*Rule{
-		{Host: "example.com", Forward: target.Listener.Addr().String()},
-		{Host: "example.org", Serve: "testdata"},
+		{FromURL: "example.com", ToURL: target.Listener.Addr().String()},
 	})
 	defer os.Remove(ruleFile)
 
-	s, err := NewServer(ruleFile, time.Hour)
+	s, err := NewServer(ruleFile, time.Hour, 2080)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +32,6 @@ func TestServer(t *testing.T) {
 	}{
 		{"http://example.com/", 200, "OK"},
 		{"http://foo.example.com/", 200, "OK"},
-		{"http://example.org/", 200, "contents of index.html\n"},
 		{"http://example.net/", 404, "Not found.\n"},
 		{"http://fooexample.com/", 404, "Not found.\n"},
 	}
