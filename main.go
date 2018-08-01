@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/gorilla/handlers"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 	"github.com/nicolaspernoud/ninicobox-v3-server/webdavaug"
@@ -16,17 +15,25 @@ import (
 )
 
 var (
-	letsCacheDir      = flag.String("letsencrypt_cache", "", "letsencrypt cache `directory` (default is to disable HTTPS)")
-	ruleFile          = flag.String("rules", "./config/proxys.json", "rule definition `file`")
-	pollInterval      = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
-	principalHostName = flag.String("hostname", "localhost", "Principal hostname, default to localhost")
+	letsCacheDir = flag.String("letsencrypt_cache", "", "letsencrypt cache `directory` (default is to disable HTTPS)")
+	ruleFile     = flag.String("rules", "./config/proxys.json", "rule definition `file`")
+	pollInterval = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
+	mainHostName = flag.String("hostname", "localhost", "Main hostname, default to localhost")
+	debugMode    = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT")
 )
 
 func main() {
-	fmt.Println("Starting the application...")
 
 	// Parse the flags
 	flag.Parse()
+
+	// Initialize logger
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	logger.Println("Server is starting...")
+	logger.Printf("Main hostname is %v\n", *mainHostName)
+
+	// Initialize security with debug flag
+	security.Init(*debugMode, logger)
 
 	// Create the webfront handler
 	webFrontServer, err := webfront.NewServer(*ruleFile, *pollInterval)
@@ -42,10 +49,9 @@ func main() {
 
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
-	rootMux.Handle(*principalHostName, mainMux)
+	rootMux.Handle(*mainHostName+"/", mainMux)
 	rootMux.Handle("/", webFrontHandler)
 
-	loggedRootMux := handlers.LoggingHandler(os.Stdout, rootMux)
 	/* 		if *letsCacheDir != "" {
 		m := &autocert.Manager{
 			Cache:      autocert.DirCache(*letsCacheDir),
@@ -61,11 +67,12 @@ func main() {
 	} */
 	//log.Fatal(http.Serve(listen(httpFD, *httpAddr), h))
 
-	originsOk := handlers.AllowedOrigins([]string{"*"})
-	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization", "Depth", "Destination"})
-	methodsOk := handlers.AllowedMethods([]string{"POST", "GET", "OPTIONS", "PUT", "DELETE", "PROPFIND", "MKCOL", "MOVE", "COPY"})
+	if *debugMode {
+		log.Fatal(http.ListenAndServe(":2080", corsMiddleware(logMiddleware(logger)(rootMux))))
+	} else {
+		log.Fatal(http.ListenAndServe(":2080", logMiddleware(logger)(rootMux)))
+	}
 
-	log.Fatal(http.ListenAndServe(":2080", handlers.CORS(originsOk, headersOk, methodsOk)(loggedRootMux)))
 }
 
 func createMainMux() http.Handler {
@@ -116,4 +123,31 @@ func createMainMux() http.Handler {
 		}
 	}
 	return mainMux
+}
+
+func logMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				userLogin, ok := r.Context().Value(0).(string)
+				if !ok {
+					userLogin = "unknown"
+				}
+				logger.Println(userLogin, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+			}()
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, PROPFIND, MKCOL, MOVE, COPY")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Depth, Destination")
+		if req.Method == "OPTIONS" {
+			return
+		}
+		next.ServeHTTP(w, req)
+	})
 }

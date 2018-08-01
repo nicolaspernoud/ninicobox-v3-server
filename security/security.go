@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -23,7 +24,20 @@ const (
 	contextRole  key = 1
 )
 
-var jWTSignature = randomString(48)
+var (
+	jWTSignature []byte
+)
+
+// Init sets the jWTSignature according to debug mode on or off
+func Init(debugMode bool, logger *log.Logger) {
+	if debugMode {
+		jWTSignature = []byte("debug_jwt_signature_do_not_use_in_production")
+	} else {
+		jWTSignature = randomByteArray(48)
+
+	}
+	logger.Printf("Token signing key is %v\n", string(jWTSignature))
+}
 
 // AuthenticationMiddleware allow access for users of allowed Roles
 type AuthenticationMiddleware struct {
@@ -186,13 +200,12 @@ func ExtractToken(r *http.Request) (string, error) {
 	return "", fmt.Errorf("no token found")
 }
 
-func randomString(length int) []byte {
+func randomByteArray(length int) []byte {
 	rand.Seed(time.Now().UnixNano())
 	letterBytes := "123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	b := make([]byte, length)
 	for i := range b {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
-	fmt.Printf("Token signing key is %v\n", string(b))
 	return b
 }
