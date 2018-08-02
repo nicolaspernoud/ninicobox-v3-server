@@ -7,5 +7,5 @@
 [x] Add security to proxies
 [x] Add let's encrypt support
 [ ] Add user and geo ip to logging, log only auth and webdav operations
-[ ] Replace polling by reloading api
+[x] Replace polling by reloading api
 [ ] Make build and deploy container

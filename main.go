@@ -49,14 +49,14 @@ func main() {
 	} else {
 		proxyPort = *debugModePort
 	}
-	proxyServer, err := proxy.NewServer("./config/proxys.json", *pollInterval, proxyPort)
+	proxyServer, err := proxy.NewServer("./config/proxys.json", proxyPort)
 	if err != nil {
 		log.Fatal(err)
 	}
 	var proxyHandler http.Handler = proxyServer
 
 	// Create the main handler
-	mainMux := createMainMux()
+	mainMux := createMainMux(proxyServer)
 
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
@@ -86,7 +86,7 @@ func main() {
 
 }
 
-func createMainMux() http.Handler {
+func createMainMux(proxyServer *proxy.Server) http.Handler {
 
 	mainMux := http.NewServeMux()
 	// Create login unsecured routes
@@ -118,6 +118,9 @@ func createMainMux() http.Handler {
 	adminMux.HandleFunc("/proxys", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost {
 			types.SetProxys(w, req)
+			if err := proxyServer.LoadRules("./config/proxys.json"); err != nil {
+				http.Error(w, "error loading proxy rules", 400)
+			}
 			return
 		}
 		if req.Method == http.MethodGet {

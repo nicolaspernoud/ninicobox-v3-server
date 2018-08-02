@@ -187,14 +187,14 @@ func ExtractToken(r *http.Request) (string, error) {
 		}
 	}
 
-	jwtCookie, err := r.Cookie("jwt_token")
-	if err == nil {
-		return jwtCookie.Value, nil
-	}
-
 	jwtQuery := r.URL.Query().Get("token")
 	if jwtQuery != "" {
 		return jwtQuery, nil
+	}
+
+	jwtCookie, err := r.Cookie("jwt_token")
+	if err == nil {
+		return jwtCookie.Value, nil
 	}
 
 	return "", fmt.Errorf("no token found")

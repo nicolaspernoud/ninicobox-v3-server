@@ -40,13 +40,12 @@ type Rule struct {
 
 // NewServer constructs a Server that reads rules from file with a period
 // specified by poll.
-func NewServer(file string, poll time.Duration, httpPortFromMain int) (*Server, error) {
+func NewServer(file string, httpPortFromMain int) (*Server, error) {
 	httpPort = httpPortFromMain
 	s := new(Server)
-	if err := s.loadRules(file); err != nil {
+	if err := s.LoadRules(file); err != nil {
 		return nil, err
 	}
-	go s.refreshRules(file, poll)
 	return s, nil
 }
 
@@ -78,20 +77,9 @@ func (s *Server) handler(req *http.Request) http.Handler {
 	return nil
 }
 
-// refreshRules polls file periodically and refreshes the Server's rule
-// set if the file has been modified.
-func (s *Server) refreshRules(file string, poll time.Duration) {
-	for {
-		if err := s.loadRules(file); err != nil {
-			log.Println(err)
-		}
-		time.Sleep(poll)
-	}
-}
-
-// loadRules tests whether file has been modified since its last invocation
+// LoadRules tests whether file has been modified since its last invocation
 // and, if so, loads the rule set from file.
-func (s *Server) loadRules(file string) error {
+func (s *Server) LoadRules(file string) error {
 	fi, err := os.Stat(file)
 	if err != nil {
 		return err

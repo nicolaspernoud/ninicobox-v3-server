@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestServer(t *testing.T) {
@@ -20,7 +19,7 @@ func TestServer(t *testing.T) {
 	})
 	defer os.Remove(ruleFile)
 
-	s, err := NewServer(ruleFile, time.Hour, 2080)
+	s, err := NewServer(ruleFile, 2080)
 	if err != nil {
 		t.Fatal(err)
 	}
