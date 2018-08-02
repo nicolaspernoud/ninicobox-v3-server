@@ -21,6 +21,10 @@ var (
 	mainHostName = flag.String("hostname", "localhost", "Main hostname, default to localhost")
 	debugMode    = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT")
 	port         = flag.Int("port", 2080, "HTTP port to serve on")
+
+	adminAuth = security.AuthenticationMiddleware{
+		AllowedRoles: []string{"admin"},
+	}
 )
 
 func main() {
@@ -51,7 +55,7 @@ func main() {
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
 	rootMux.Handle(*mainHostName+"/", mainMux)
-	rootMux.Handle("/", proxyHandler)
+	rootMux.Handle("/", adminAuth.ValidateJWTMiddleware(proxyHandler))
 
 	/* 		if *letsCacheDir != "" {
 		m := &autocert.Manager{
@@ -116,9 +120,6 @@ func createMainMux() http.Handler {
 		}
 		http.Error(w, "method not allowed", 405)
 	})
-	adminAuth := security.AuthenticationMiddleware{
-		AllowedRoles: []string{"admin"},
-	}
 	mainMux.Handle("/api/admin/", http.StripPrefix("/api/admin", adminAuth.ValidateJWTMiddleware(adminMux)))
 
 	// Create webdav routes according to filesacl.json

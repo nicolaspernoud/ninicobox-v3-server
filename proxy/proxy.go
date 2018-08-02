@@ -148,6 +148,7 @@ func parseRules(file string) ([]*Rule, error) {
 
 // makeHandler constructs the appropriate Handler for the given Rule.
 func makeHandler(r *Rule) http.Handler {
+	var jwtQuery string
 	if h := r.ToURL; h != "" {
 		return &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
@@ -162,6 +163,8 @@ func makeHandler(r *Rule) http.Handler {
 					req.URL.Host = hSplit[1]
 					req.Host = hSplit[1]
 				}
+				// Get token from query
+				jwtQuery = req.URL.Query().Get("token")
 			},
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location
@@ -170,7 +173,14 @@ func makeHandler(r *Rule) http.Handler {
 					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
+				// Allow iframe display
+				res.Header.Set("X-Frame-Options", "ALLOWALL")
+				// Set token in cookie from query
+				if jwtQuery != "" {
+					res.Header.Set("Set-Cookie", "jwt_token="+jwtQuery)
+				}
 				return nil
+
 			},
 		}
 	}
