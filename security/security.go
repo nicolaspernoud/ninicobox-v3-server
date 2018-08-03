@@ -52,7 +52,7 @@ func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) ht
 // ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
 func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		JWT, errExtractToken := ExtractToken(req)
+		JWT, origin, errExtractToken := ExtractToken(req)
 		if errExtractToken != nil {
 			http.Error(w, errExtractToken.Error(), 401)
 			return
@@ -77,6 +77,10 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil {
 				ctx := context.WithValue(req.Context(), contextLogin, claims.Login)
 				ctx = context.WithValue(ctx, contextRole, claims.Role)
+				// if the JWT origin is a query set the token as cookie in the response
+				if origin == "query" {
+					w.Header().Set("Set-Cookie", "jwt_token="+JWT)
+				}
 				next.ServeHTTP(w, req.WithContext(ctx))
 			} else {
 				http.Error(w, errRole.Error(), 403)
@@ -172,10 +176,10 @@ func checkUserRoleIsAllowed(userRole string, allowedRoles []string) error {
 // ExtractToken from Authorization header in the form `Bearer <JWT Token>`
 // OR in an cookie named `jwt_token`
 // OR a URL query paramter of the form https://example.com?token=<JWT token>
-func ExtractToken(r *http.Request) (string, error) {
+func ExtractToken(r *http.Request) (string, string, error) {
 	jwtHeader := strings.Split(r.Header.Get("Authorization"), " ")
 	if jwtHeader[0] == "Bearer" && len(jwtHeader) == 2 {
-		return jwtHeader[1], nil
+		return jwtHeader[1], "bearerHeader", nil
 	}
 
 	// try to use the basic auth header instead
@@ -183,21 +187,21 @@ func ExtractToken(r *http.Request) (string, error) {
 		decoded, err := base64.StdEncoding.DecodeString(jwtHeader[1])
 		if err == nil {
 			jwtHeader = strings.Split(string(decoded), ":")
-			return jwtHeader[1], nil
+			return jwtHeader[1], "basicHeader", nil
 		}
 	}
 
 	jwtQuery := r.URL.Query().Get("token")
 	if jwtQuery != "" {
-		return jwtQuery, nil
+		return jwtQuery, "query", nil
 	}
 
 	jwtCookie, err := r.Cookie("jwt_token")
 	if err == nil {
-		return jwtCookie.Value, nil
+		return jwtCookie.Value, "cookie", nil
 	}
 
-	return "", fmt.Errorf("no token found")
+	return "", "", fmt.Errorf("no token found")
 }
 
 func randomByteArray(length int) []byte {
