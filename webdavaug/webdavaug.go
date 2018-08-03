@@ -96,10 +96,11 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func webdavLogger(r *http.Request, err error) {
+	user := security.UserLoginFromContext(r.Context())
 	if err != nil {
-		log.Printf("WEBDAV [%s]: %s, ERROR: %s\n", r.Method, r.URL, err)
+		log.Printf("WEBDAV [%s]: %s, USER: %v, ERROR: %s\n", r.Method, r.URL, user, err)
 	} else {
-		log.Printf("WEBDAV [%s]: %s \n", r.Method, r.URL)
+		log.Printf("WEBDAV [%s]: %s, USER: %v\n", r.Method, r.URL, user)
 	}
 }
 

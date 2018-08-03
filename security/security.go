@@ -213,3 +213,8 @@ func randomByteArray(length int) []byte {
 	}
 	return b
 }
+
+// UserLoginFromContext retrieve user login from request context
+func UserLoginFromContext(ctx context.Context) string {
+	return ctx.Value(contextLogin).(string)
+}
