@@ -108,6 +108,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	user, error = types.MatchUser(sentUser)
 	if error != nil {
 		http.Error(w, error.Error(), 403)
+		log.Printf("| %v | Login failure | %v | ", sentUser.Login, req.RemoteAddr)
 		return
 	}
 	// If user is found, create and send a JWT
@@ -124,6 +125,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, tokenString)
+	log.Printf("User %v (%v %v) successfully logged in\n", user.Login, user.Name, user.Surname)
 }
 
 // GetShareToken provide a token to access the ressource on a given path
