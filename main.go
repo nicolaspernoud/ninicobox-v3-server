@@ -4,12 +4,11 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
+	"github.com/nicolaspernoud/ninicobox-v3-server/log"
 	"github.com/nicolaspernoud/ninicobox-v3-server/proxy"
 	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
@@ -35,12 +34,11 @@ func main() {
 	flag.Parse()
 
 	// Initialize logger
-	logger := log.New(os.Stdout, "", log.LstdFlags)
-	logger.Println("Server is starting...")
-	logger.Printf("Main hostname is %v\n", *mainHostName)
+	log.Logger.Println("Server is starting...")
+	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
 	// Initialize security with debug flag
-	security.Init(*debugMode, logger)
+	security.Init(*debugMode)
 
 	// Create the proxy handler
 	var proxyPort int
@@ -51,7 +49,7 @@ func main() {
 	}
 	proxyServer, err := proxy.NewServer("./config/proxys.json", proxyPort)
 	if err != nil {
-		log.Fatal(err)
+		log.Logger.Fatal(err)
 	}
 	var proxyHandler http.Handler = proxyServer
 
@@ -65,7 +63,7 @@ func main() {
 
 	// Serve locally with http on debug mode or with let's encrypt on production mode
 	if *debugMode {
-		log.Fatal(http.ListenAndServe(":"+strconv.Itoa(*debugModePort), corsMiddleware(logMiddleware(logger)(rootMux))))
+		log.Logger.Fatal(http.ListenAndServe(":"+strconv.Itoa(*debugModePort), corsMiddleware(logMiddleware(rootMux))))
 	} else {
 		certManager := autocert.Manager{
 			Prompt: autocert.AcceptTOS,
@@ -74,7 +72,7 @@ func main() {
 
 		server := &http.Server{
 			Addr:    ":443",
-			Handler: logMiddleware(logger)(rootMux),
+			Handler: rootMux,
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
 			},
@@ -147,19 +145,13 @@ func createMainMux(proxyServer *proxy.Server) http.Handler {
 	return mainMux
 }
 
-func logMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer func() {
-				userLogin, ok := r.Context().Value(0).(string)
-				if !ok {
-					userLogin = "unknown"
-				}
-				logger.Println(userLogin, r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
-			}()
-			next.ServeHTTP(w, r)
-		})
-	}
+func logMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			log.Logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+		}()
+		next.ServeHTTP(w, r)
+	})
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

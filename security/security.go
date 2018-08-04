@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/nicolaspernoud/ninicobox-v3-server/log"
 	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 )
 
@@ -29,14 +29,14 @@ var (
 )
 
 // Init sets the jWTSignature according to debug mode on or off
-func Init(debugMode bool, logger *log.Logger) {
+func Init(debugMode bool) {
 	if debugMode {
 		jWTSignature = []byte("debug_jwt_signature_do_not_use_in_production")
 	} else {
 		jWTSignature = randomByteArray(48)
 
 	}
-	logger.Printf("Token signing key is %v\n", string(jWTSignature))
+	log.Logger.Printf("Token signing key is %v\n", string(jWTSignature))
 }
 
 // AuthenticationMiddleware allow access for users of allowed Roles
@@ -108,7 +108,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	user, error = types.MatchUser(sentUser)
 	if error != nil {
 		http.Error(w, error.Error(), 403)
-		log.Printf("| %v | Login failure | %v | ", sentUser.Login, req.RemoteAddr)
+		log.Logger.Printf("| %v | Login failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
 		return
 	}
 	// If user is found, create and send a JWT
@@ -125,7 +125,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	fmt.Fprintf(w, tokenString)
-	log.Printf("User %v (%v %v) successfully logged in\n", user.Login, user.Name, user.Surname)
+	log.Logger.Printf("| %v (%v %v) | Login success | %v | %v", sentUser.Login, user.Name, user.Surname, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
 }
 
 // GetShareToken provide a token to access the ressource on a given path
@@ -218,5 +218,9 @@ func randomByteArray(length int) []byte {
 
 // UserLoginFromContext retrieve user login from request context
 func UserLoginFromContext(ctx context.Context) string {
-	return ctx.Value(contextLogin).(string)
+	user, ok := ctx.Value(contextLogin).(string)
+	if ok {
+		return user
+	}
+	return "unknown_user"
 }

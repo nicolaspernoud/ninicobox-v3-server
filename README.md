@@ -6,6 +6,7 @@
 [x] Allow displaying of proxies in webframes
 [x] Add security to proxies
 [x] Add let's encrypt support
-[ ] Add user and geo ip to logging, log only auth and webdav operations
+[x] Add user and geo ip to logging, log only auth and webdav operations
 [x] Replace polling by reloading api
+[ ] Add basic auth option to webdav
 [ ] Make build and deploy container
