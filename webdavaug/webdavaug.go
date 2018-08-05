@@ -25,7 +25,7 @@ type WebdavAug struct {
 }
 
 // New create an initialized WebdavAug instance
-func New(prefix string, directory string, allowedRoles []string, canWrite bool) WebdavAug {
+func New(prefix string, directory string, allowedRoles []string, canWrite bool, basicAuth bool) WebdavAug {
 
 	unsecuredZip := http.StripPrefix(prefix, ZipServer(directory))
 	unsecuredWebdav := &webdav.Handler{
@@ -35,8 +35,15 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool) 
 		Logger:     webdavLogger,
 	}
 
-	zip := security.ValidateJWTMiddleware(unsecuredZip, allowedRoles)
-	webdav := security.ValidateJWTMiddleware(unsecuredWebdav, allowedRoles)
+	var zip http.Handler
+	var webdav http.Handler
+	if basicAuth {
+		zip = security.ValidateBasicAuthMiddleware(unsecuredZip, allowedRoles)
+		webdav = security.ValidateBasicAuthMiddleware(unsecuredWebdav, allowedRoles)
+	} else {
+		zip = security.ValidateJWTMiddleware(unsecuredZip, allowedRoles)
+		webdav = security.ValidateJWTMiddleware(unsecuredWebdav, allowedRoles)
+	}
 
 	var mMux map[string]http.Handler
 

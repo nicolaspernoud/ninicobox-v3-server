@@ -19,5 +19,13 @@
         "directory": "./data/admins",
         "roles" : ["admin"],
         "permissions": "rw"
+    },
+    {
+        "name": "Basic Auth",
+        "path": "basicauth",
+        "directory": "./data/admins",
+        "roles" : ["admin"],
+        "permissions": "rw",
+        "basicauth": true
     }
 ]

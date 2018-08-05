@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"net/http"
 	"testing"
 
@@ -19,6 +20,7 @@ func Test_MainRouter(t *testing.T) {
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
+	basicAuthAdminHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password"))
 
 	// Try to access the general informations
 	tester.DoRequest(t, router, "GET", "/api/infos", "", "", http.StatusOK, `{"server_version":`)
@@ -48,6 +50,10 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "DELETE", "/api/files/usersrw/Test.txt", "", "", http.StatusUnauthorized, "no token found")
 	// Try to get a share token for an user reserved resource
 	tester.DoRequest(t, router, "POST", "/api/common/getsharetoken", "", shareTokenTargetPath, http.StatusUnauthorized, "no token found")
+	// Try to get a basic auth protected webdav ressource without basic auth
+	tester.DoRequest(t, router, "GET", "/api/files/basicauth/File admins 01.txt", "", "", http.StatusForbidden, "authorization header could not be processed")
+	// Try to get an admin basic auth protected webdav ressource with incorrect basic auth
+	tester.DoRequest(t, router, "GET", "/api/files/basicauth/File admins 01.txt", "Basic "+base64.StdEncoding.EncodeToString([]byte("password")), "", http.StatusForbidden, "user not found")
 
 	// === Try to access the resources as an normal user ===
 	// Do a login with an incorrect method
@@ -88,6 +94,8 @@ func Test_MainRouter(t *testing.T) {
 	shareHeader = "Bearer " + tester.DoRequest(t, router, "POST", "/api/common/getsharetoken", userHeader, "/api/files/adminsrw/File admins 01.txt", http.StatusOK, `eyJhbG`)
 	// Try to use the share token for the admin token path
 	tester.DoRequest(t, router, "GET", "/api/files/adminsrw/File admins 01.txt", shareHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
+	// Try to get an admin basic auth protected webdav ressource with user basic auth
+	tester.DoRequest(t, router, "GET", "/api/files/basicauth/File admins 01.txt", "Basic "+base64.StdEncoding.EncodeToString([]byte("user:password")), "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 
 	// === Try to access the resources as an admin ===
 	// Do a login with the correct admin user
@@ -119,4 +127,14 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "GET", "/api/files/adminsrw/Test.txt", adminHeader, "", http.StatusOK, "This is a test")
 	// Try to delete a webdav resource
 	tester.DoRequest(t, router, "DELETE", "/api/files/adminsrw/Test.txt", adminHeader, "", http.StatusNoContent, "")
+	// Try to read a non basic auth webdav resource with basic auth header
+	tester.DoRequest(t, router, "GET", "/api/files/usersrw/File users 01.txt", basicAuthAdminHeader, "", http.StatusForbidden, "token contains an invalid number of segments")
+	// Try to read a webdav resource with basic auth
+	tester.DoRequest(t, router, "GET", "/api/files/basicauth/File admins 01.txt", basicAuthAdminHeader, "", http.StatusOK, "Lorem ipsum")
+	// Try to create a webdav resource with basic auth
+	tester.DoRequest(t, router, "PUT", "/api/files/basicauth/Test basic auth.txt", basicAuthAdminHeader, "This is a test", http.StatusCreated, "Created")
+	// Try to read the created resource with basic auth
+	tester.DoRequest(t, router, "GET", "/api/files/basicauth/Test basic auth.txt", basicAuthAdminHeader, "", http.StatusOK, "This is a test")
+	// Try to delete a webdav resource with basic auth
+	tester.DoRequest(t, router, "DELETE", "/api/files/basicauth/Test basic auth.txt", basicAuthAdminHeader, "", http.StatusNoContent, "")
 }

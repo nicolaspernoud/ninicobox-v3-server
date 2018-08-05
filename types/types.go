@@ -111,6 +111,7 @@ type FilesACL struct {
 	Directory   string   `json:"directory"`
 	Roles       []string `json:"roles"`
 	Permissions string   `json:"permissions"`
+	BasicAuth   bool     `json:"basicauth"`
 }
 
 // SendFilesACLs send files acls as response from an http requests

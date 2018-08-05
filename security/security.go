@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -37,6 +38,49 @@ func Init(debugMode bool) {
 
 	}
 	log.Logger.Printf("Token signing key is %v\n", string(jWTSignature))
+}
+
+// ValidateBasicAuthMiddleware tests if a Basic Auth header is present, and valid, in the request and returns an Error if not
+func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// Extract the login and password
+		var sentUser types.User
+		basicAuthHeader := strings.Split(req.Header.Get("Authorization"), " ")
+		err := errors.New("authorization header could not be processed")
+		if basicAuthHeader[0] == "Basic" && len(basicAuthHeader) == 2 {
+			var decoded []byte
+			decoded, err = base64.StdEncoding.DecodeString(basicAuthHeader[1])
+			if err == nil {
+				if auth := strings.Split(string(decoded), ":"); len(auth) == 2 {
+					sentUser = types.User{
+						Login:    auth[0],
+						Password: auth[1],
+					}
+				}
+			}
+		}
+		if err != nil {
+			http.Error(w, err.Error(), 403)
+			return
+		}
+
+		// Try to match an user with the credentials provided
+		var user types.User
+		user, err = types.MatchUser(sentUser)
+		if err != nil {
+			http.Error(w, err.Error(), 403)
+			log.Logger.Printf("| %v | Basic auth failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
+			return
+		}
+
+		if err := checkUserRoleIsAllowed(user.Role, allowedRoles); err == nil {
+			ctx := context.WithValue(req.Context(), contextLogin, user.Login)
+			ctx = context.WithValue(ctx, contextRole, user.Role)
+			next.ServeHTTP(w, req.WithContext(ctx))
+		} else {
+			http.Error(w, err.Error(), 403)
+		}
+	})
 }
 
 // AuthenticationMiddleware allow access for users of allowed Roles

@@ -138,7 +138,7 @@ func createMainMux(proxyServer *proxy.Server) http.Handler {
 	} else {
 		for _, acl := range filesACLs {
 			webdavPath := "/api/files/" + acl.Path + "/"
-			webdavHandler := webdavaug.New(webdavPath, acl.Directory, acl.Roles, acl.Permissions == "rw")
+			webdavHandler := webdavaug.New(webdavPath, acl.Directory, acl.Roles, acl.Permissions == "rw", acl.BasicAuth)
 			mainMux.Handle(webdavPath, webdavHandler)
 		}
 	}
