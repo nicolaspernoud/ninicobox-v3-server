@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/nicolaspernoud/ninicobox-v3-server/log"
 	"github.com/nicolaspernoud/ninicobox-v3-server/proxy"
@@ -17,8 +16,7 @@ import (
 )
 
 var (
-	letsCacheDir  = flag.String("letsencrypt_cache", "./config/letsencrypt_cache", "letsencrypt cache `directory` (default is to disable HTTPS)")
-	pollInterval  = flag.Duration("poll", time.Second*10, "rule file poll `interval`")
+	letsCacheDir  = flag.String("letsencrypt_cache", "./letsencrypt_cache", "letsencrypt cache `directory`")
 	mainHostName  = flag.String("hostname", "localhost", "Main hostname, default to localhost")
 	debugMode     = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT")
 	debugModePort = flag.Int("debug_mode_port", 2080, "HTTP port to serve on (on debug mode)")
