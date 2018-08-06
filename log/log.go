@@ -51,11 +51,11 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 	// First check if the ip is in memory cache
 	ipFromCache, ok := ipcache.content[req.RemoteAddr]
 	if ok {
-		return ipFromCache
+		return ipFromCache + " (from cache)"
 	}
 
 	// If not open the maxmind database, search the ip and update the cache
-	db, err := maxminddb.Open("./ipgeodatabase/GeoLite2-City.mmdb")
+	db, err := maxminddb.Open("../ipgeodatabase/GeoLite2-City.mmdb")
 	if err != nil {
 		Logger.Fatal(err)
 	}
