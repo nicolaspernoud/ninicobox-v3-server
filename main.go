@@ -85,6 +85,9 @@ func main() {
 func createMainMux(proxyServer *proxy.Server) http.Handler {
 
 	mainMux := http.NewServeMux()
+	// Serve static files
+	fs := http.FileServer(http.Dir("client"))
+	mainMux.Handle("/", fs)
 	// Create login unsecured routes
 	mainMux.HandleFunc("/api/login", security.Authenticate)
 	mainMux.HandleFunc("/api/infos", types.SendInfos)
