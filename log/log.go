@@ -66,6 +66,10 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 
 	ip := net.ParseIP(req.RemoteAddr)
 
+	if ip == nil {
+		return "ip could not be parsed"
+	}
+
 	var record struct {
 		City struct {
 			Names map[string]string `maxminddb:"names"`

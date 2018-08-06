@@ -17,6 +17,8 @@ func TestGetCityAndCountryFromRequest(t *testing.T) {
 	requestFromLondon := httptest.NewRequest("GET", "/test", strings.NewReader(""))
 	requestFromLondon.RemoteAddr = "81.2.69.142"
 
+	requestWithLocalIP := httptest.NewRequest("GET", "/test", strings.NewReader(""))
+
 	type args struct {
 		req *http.Request
 	}
@@ -45,6 +47,13 @@ func TestGetCityAndCountryFromRequest(t *testing.T) {
 				req: requestFromLondon,
 			},
 			want: "Londres, Royaume-Uni (from cache)",
+		},
+		{
+			name: "Request with empty ip",
+			args: args{
+				req: requestWithLocalIP,
+			},
+			want: "ip could not be parsed",
 		},
 	}
 	for _, tt := range tests {
