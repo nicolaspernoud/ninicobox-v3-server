@@ -20,11 +20,14 @@ type cache struct {
 }
 
 // Logger represents a standard logger sets up for this application usage
-var Logger *log.Logger
-var ipcache = cache{
-	last:    time.Now(),
-	content: make(map[string]string),
-}
+var (
+	Logger  *log.Logger
+	ipcache = cache{
+		last:    time.Now(),
+		content: make(map[string]string),
+	}
+	ipDbLocation = "./ipgeodatabase/GeoLite2-City.mmdb"
+)
 
 func init() {
 	// Initialize logger
@@ -55,7 +58,7 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 	}
 
 	// If not open the maxmind database, search the ip and update the cache
-	db, err := maxminddb.Open("../ipgeodatabase/GeoLite2-City.mmdb")
+	db, err := maxminddb.Open(ipDbLocation)
 	if err != nil {
 		Logger.Fatal(err)
 	}

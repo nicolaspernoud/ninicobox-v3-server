@@ -9,6 +9,8 @@ import (
 
 func TestGetCityAndCountryFromRequest(t *testing.T) {
 
+	ipDbLocation = "../ipgeodatabase/GeoLite2-City.mmdb"
+
 	requestFromLocalHost := httptest.NewRequest("GET", "/test", strings.NewReader(""))
 	requestFromLocalHost.RemoteAddr = "[::1]:1234"
 
