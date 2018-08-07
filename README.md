@@ -13,12 +13,16 @@
 
 [x] Correct ip geolocation
 [x] Move JWT to basic auth to last resort
+[x] Allow unsecured proxys
 [ ] Correct webdav auth
 [ ] Correct iframe resizing
 [ ] Add sonarcloud audit
-[ ] [Client] Correct proxys saving
+[x] [Client] Correct proxys saving
 [ ] [Client] Add automatic switch to main view on blur
 [ ] Test security, http2, tls, etc...
 [ ] Limit proxys to registered ones
 [ ] Allow path in tourl
 [x] Correct redirection
+[ ] [Client] clean path
+[ ] Documentation
+[ ] Self doc

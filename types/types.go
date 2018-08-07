@@ -187,6 +187,7 @@ type Proxy struct {
 	Name    string `json:"name"`
 	FromURL string `json:"fromUrl"`
 	ToURL   string `json:"toUrl"`
+	Secured bool   `json:"secured"`
 	Icon    string `json:"icon"`
 	Rank    string `json:"rank"`
 }

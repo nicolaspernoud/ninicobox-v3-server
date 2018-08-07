@@ -18,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/nicolaspernoud/ninicobox-v3-server/security"
 )
 
 var httpPort int
@@ -34,6 +36,7 @@ type Server struct {
 type Rule struct {
 	FromURL string // to match against request Host header
 	ToURL   string // non-empty if reverse proxy
+	Secured bool   // true if the handler is JWT secured
 
 	handler http.Handler
 }
@@ -137,7 +140,7 @@ func parseRules(file string) ([]*Rule, error) {
 // makeHandler constructs the appropriate Handler for the given Rule.
 func makeHandler(r *Rule) http.Handler {
 	if h := r.ToURL; h != "" {
-		return &httputil.ReverseProxy{
+		reverseProxy := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				// Set the correct scheme to the request
 				if !strings.HasPrefix(h, "http") {
@@ -166,6 +169,10 @@ func makeHandler(r *Rule) http.Handler {
 				return nil
 			},
 		}
+		if !r.Secured {
+			return reverseProxy
+		}
+		return security.ValidateJWTMiddleware(reverseProxy, []string{"admin"})
 	}
 	return nil
 }

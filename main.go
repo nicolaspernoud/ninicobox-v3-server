@@ -57,7 +57,7 @@ func main() {
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
 	rootMux.Handle(*mainHostName+"/", mainMux)
-	rootMux.Handle("/", adminAuth.ValidateJWTMiddleware(proxyHandler))
+	rootMux.Handle("/", proxyHandler)
 
 	// Serve locally with http on debug mode or with let's encrypt on production mode
 	if *debugMode {
