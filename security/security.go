@@ -228,15 +228,6 @@ func ExtractToken(r *http.Request) (string, string, error) {
 		return jwtHeader[1], "bearerHeader", nil
 	}
 
-	// try to use the basic auth header instead
-	if jwtHeader[0] == "Basic" && len(jwtHeader) == 2 {
-		decoded, err := base64.StdEncoding.DecodeString(jwtHeader[1])
-		if err == nil {
-			jwtHeader = strings.Split(string(decoded), ":")
-			return jwtHeader[1], "basicHeader", nil
-		}
-	}
-
 	jwtQuery := r.URL.Query().Get("token")
 	if jwtQuery != "" {
 		return jwtQuery, "query", nil
@@ -245,6 +236,15 @@ func ExtractToken(r *http.Request) (string, string, error) {
 	jwtCookie, err := r.Cookie("jwt_token")
 	if err == nil {
 		return jwtCookie.Value, "cookie", nil
+	}
+
+	// try to use the basic auth header instead
+	if jwtHeader[0] == "Basic" && len(jwtHeader) == 2 {
+		decoded, err := base64.StdEncoding.DecodeString(jwtHeader[1])
+		if err == nil {
+			jwtHeader = strings.Split(string(decoded), ":")
+			return jwtHeader[1], "basicHeader", nil
+		}
 	}
 
 	return "", "", fmt.Errorf("no token found")

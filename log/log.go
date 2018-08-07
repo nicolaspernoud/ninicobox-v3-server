@@ -64,7 +64,7 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 	}
 	defer db.Close()
 
-	ip := net.ParseIP(req.RemoteAddr)
+	ip := net.ParseIP(strings.Split(req.RemoteAddr, ":")[0])
 
 	if ip == nil {
 		return "ip could not be parsed"
@@ -82,6 +82,9 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 	err = db.Lookup(ip, &record)
 	if err != nil {
 		Logger.Fatal(err)
+	}
+	if record.Country.Names["fr"] == "" {
+		return "ip not found"
 	}
 	ipFromDB := fmt.Sprintf("%v, %v", record.City.Names["fr"], record.Country.Names["fr"])
 	ipcache.content[req.RemoteAddr] = ipFromDB

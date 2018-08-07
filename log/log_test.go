@@ -53,7 +53,7 @@ func TestGetCityAndCountryFromRequest(t *testing.T) {
 			args: args{
 				req: requestWithLocalIP,
 			},
-			want: "ip could not be parsed",
+			want: "ip not found",
 		},
 	}
 	for _, tt := range tests {
