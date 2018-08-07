@@ -19,3 +19,6 @@
 [ ] [Client] Correct proxys saving
 [ ] [Client] Add automatic switch to main view on blur
 [ ] Test security, http2, tls, etc...
+[ ] Limit proxys to registered ones
+[ ] Allow path in tourl
+[x] Correct redirection

@@ -155,6 +155,9 @@ func makeHandler(r *Rule) http.Handler {
 				// Alter the redirect location
 				u, err := res.Location()
 				if err == nil {
+					if httpPort == 443 {
+						u.Scheme = "https"
+					}
 					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
