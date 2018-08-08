@@ -60,7 +60,8 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 			}
 		}
 		if err != nil {
-			http.Error(w, err.Error(), 403)
+			w.Header().Set("WWW-Authenticate", `Basic realm="server"`)
+			http.Error(w, err.Error(), 401)
 			return
 		}
 
@@ -98,6 +99,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		JWT, origin, errExtractToken := ExtractToken(req)
 		if errExtractToken != nil {
+			w.Header().Set("WWW-Authenticate", `Basic realm="server"`)
 			http.Error(w, errExtractToken.Error(), 401)
 			return
 		}
@@ -155,6 +157,8 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		log.Logger.Printf("| %v | Login failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
 		return
 	}
+	// Remove the password hash from sent user
+	user.PasswordHash = ""
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
 		User: user,

@@ -14,8 +14,8 @@
 [x] Correct ip geolocation
 [x] Move JWT to basic auth to last resort
 [x] Allow unsecured proxys
-[ ] Correct webdav auth
-[ ] Correct iframe resizing
+[x] Correct webdav auth
+[ ] [Client] Correct iframe resizing
 [ ] Add sonarcloud audit
 [x] [Client] Correct proxys saving
 [ ] [Client] Add automatic switch to main view on blur
@@ -25,4 +25,4 @@
 [x] Correct redirection
 [ ] [Client] clean path
 [ ] Documentation
-[ ] Self doc
+[ ] Self doc + saves + mcd
