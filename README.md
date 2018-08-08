@@ -15,14 +15,16 @@
 [x] Move JWT to basic auth to last resort
 [x] Allow unsecured proxys
 [x] Correct webdav auth
-[ ] [Client] Correct iframe resizing
+[x] [Client] Correct iframe resizing
 [ ] Add sonarcloud audit
 [x] [Client] Correct proxys saving
-[ ] [Client] Add automatic switch to main view on blur
-[ ] Test security, http2, tls, etc...
+[x] [Client] Add automatic switch to main view on blur
+[x] Toggle token lifespan to 24 hours
+[/] Test security, http2, tls, etc...
 [ ] Limit proxys to registered ones
 [ ] Allow path in tourl
 [x] Correct redirection
 [ ] [Client] clean path
 [ ] Documentation
 [ ] Self doc + saves + mcd
+[ ] Correct informations display

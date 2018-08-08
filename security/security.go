@@ -163,7 +163,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
 		User: user,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * time.Duration(1)).Unix(),
+			ExpiresAt: time.Now().Add(time.Hour * time.Duration(24)).Unix(),
 			IssuedAt:  time.Now().Unix(),
 		},
 	})

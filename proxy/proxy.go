@@ -164,8 +164,6 @@ func makeHandler(r *Rule) http.Handler {
 					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
-				// Allow iframe display
-				res.Header.Set("X-Frame-Options", "ALLOWALL")
 				return nil
 			},
 		}
