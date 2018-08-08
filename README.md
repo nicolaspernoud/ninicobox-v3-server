@@ -29,3 +29,4 @@
 [ ] Self doc + saves + mcd
 [ ] Correct informations display
 [ ] [Client] display techical proxys as icons
+[ ] Add compression
