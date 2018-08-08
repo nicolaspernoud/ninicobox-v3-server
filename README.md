@@ -26,7 +26,7 @@
 [x] Correct redirection
 [ ] [Client] clean path
 [ ] Documentation
-[ ] Self doc + saves + mcd
+[/] Self doc + saves + mcd
 [ ] Correct informations display
 [ ] [Client] display techical proxys as icons
 [ ] Add compression
