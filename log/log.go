@@ -51,10 +51,13 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 		ipcache.content = make(map[string]string)
 	}
 
+	// Get ip from remote adress
+	address := strings.Split(req.RemoteAddr, ":")[0]
+
 	// First check if the ip is in memory cache
-	ipFromCache, ok := ipcache.content[req.RemoteAddr]
+	locFromCache, ok := ipcache.content[address]
 	if ok {
-		return ipFromCache + " (from cache)"
+		return locFromCache + " (from cache)"
 	}
 
 	// If not open the maxmind database, search the ip and update the cache
@@ -64,7 +67,7 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 	}
 	defer db.Close()
 
-	ip := net.ParseIP(strings.Split(req.RemoteAddr, ":")[0])
+	ip := net.ParseIP(address)
 
 	if ip == nil {
 		return "ip could not be parsed"
