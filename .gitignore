@@ -5,6 +5,7 @@
 *.so
 *.dylib
 debug
+client
 
 # Test binary, build with `go test -c`
 *.test

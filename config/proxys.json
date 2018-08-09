@@ -5,7 +5,9 @@
 		"toUrl": "http://www.example.com",
 		"secured": false,
 		"icon": "redeem",
-		"rank": "1"
+		"rank": "1",
+		"iframed": true,
+		"iframepath": "/test"
 	},
 	{
 		"name": "Example 2",
@@ -13,6 +15,8 @@
 		"toUrl": "http://www.example.com",
 		"secured": false,
 		"icon": "redeem",
-		"rank": "2"
+		"rank": "2",
+		"iframed": false,
+		"iframepath": ""
 	}
 ]
