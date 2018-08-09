@@ -164,6 +164,8 @@ func makeHandler(r *Rule) http.Handler {
 					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
+				res.Header.Set("Content-Security-Policy", "frame-ancestors https://*.ninico.fr")
+				res.Header.Set("X-Frame-Options", "DENY")
 				return nil
 			},
 		}

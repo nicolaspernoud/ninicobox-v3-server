@@ -56,7 +56,7 @@ func main() {
 
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
-	rootMux.Handle(*mainHostName+"/", mainMux)
+	rootMux.Handle(*mainHostName+"/", webSecurityMiddleware(mainMux))
 	rootMux.Handle("/", proxyHandler)
 
 	// Serve locally with http on debug mode or with let's encrypt on production mode
@@ -70,7 +70,7 @@ func main() {
 
 		server := &http.Server{
 			Addr:    ":443",
-			Handler: webSecurityMiddleware(rootMux),
+			Handler: rootMux,
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
 			},
