@@ -1,5 +1,6 @@
 # ninicobox-v3-server
-(Work in progress) Server for Ninicobox V3, written in Go
+
+A home cloud providing file explorer with permissions and access control lists to share files with friends, and acting as a proxy for other services with content rewriting. Server written in go.
 
 ## To do
 
@@ -22,11 +23,11 @@
 [x] Toggle token lifespan to 24 hours
 [/] Test security, http2, tls, etc...
 [ ] Limit proxys to registered ones
-[ ] Allow path in tourl
+[x] Allow path in tourl
 [x] Correct redirection
 [ ] [Client] clean path
-[ ] Documentation
+[/] Documentation
 [/] Self doc + saves + mcd
-[ ] Correct informations display
-[ ] [Client] display techical proxys as icons
+[x] Correct informations display
+[x] [Client] display techical proxys as icons
 [ ] Add compression

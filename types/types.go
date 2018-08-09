@@ -161,7 +161,7 @@ func SendInfos(w http.ResponseWriter, req *http.Request) {
 func InfosFromJSONFiles() (Infos, error) {
 	// Get the client version
 	var clientPackage interface{}
-	err := Load("./client_package.json", &clientPackage)
+	err := Load("./client/package.json", &clientPackage)
 	if err != nil {
 		return Infos{}, err
 	}
@@ -176,7 +176,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "wip",
+		ServerVersion: "3.0.0",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
