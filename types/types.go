@@ -185,8 +185,8 @@ func InfosFromJSONFiles() (Infos, error) {
 // Proxy represents a web server to proxy
 type Proxy struct {
 	Name       string `json:"name"`
-	FromURL    string `json:"fromUrl"`
-	ToURL      string `json:"toUrl"`
+	ProxyFrom  string `json:"proxyFrom"`
+	ProxyTo    string `json:"proxyTo"`
 	Secured    bool   `json:"secured"`
 	Icon       string `json:"icon"`
 	Rank       string `json:"rank"`
@@ -219,11 +219,11 @@ func SetProxys(w http.ResponseWriter, req *http.Request) {
 	}
 	// Strip schemes from urls
 	for key, val := range proxys {
-		if strings.HasPrefix(val.FromURL, "http://") {
-			proxys[key].FromURL = strings.TrimPrefix(val.FromURL, "http://")
+		if strings.HasPrefix(val.ProxyFrom, "http://") {
+			proxys[key].ProxyFrom = strings.TrimPrefix(val.ProxyFrom, "http://")
 		}
-		if strings.HasPrefix(val.FromURL, "https://") {
-			proxys[key].FromURL = strings.TrimPrefix(val.FromURL, "https://")
+		if strings.HasPrefix(val.ProxyFrom, "https://") {
+			proxys[key].ProxyFrom = strings.TrimPrefix(val.ProxyFrom, "https://")
 		}
 	}
 	err = Save("./config/proxys.json", &proxys)

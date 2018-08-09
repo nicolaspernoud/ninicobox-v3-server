@@ -15,11 +15,11 @@ func TestServer(t *testing.T) {
 	defer target.Close()
 
 	ruleFile := writeRules([]*Rule{
-		{FromURL: "example.com", ToURL: target.Listener.Addr().String()},
+		{ProxyFrom: "example.com", ProxyTo: target.Listener.Addr().String()},
 	})
 	defer os.Remove(ruleFile)
 
-	s, err := NewServer(ruleFile, 2080)
+	s, err := NewServer(ruleFile, 2080, "localhost")
 	if err != nil {
 		t.Fatal(err)
 	}

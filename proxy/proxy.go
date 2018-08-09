@@ -35,9 +35,9 @@ type Server struct {
 
 // Rule represents a rule in a configuration file.
 type Rule struct {
-	FromURL string // to match against request Host header
-	ToURL   string // non-empty if reverse proxy
-	Secured bool   // true if the handler is JWT secured
+	ProxyFrom string // to match against request Host header
+	ProxyTo   string // non-empty if reverse proxy
+	Secured   bool   // true if the handler is JWT secured
 
 	handler http.Handler
 }
@@ -75,7 +75,7 @@ func (s *Server) handler(req *http.Request) http.Handler {
 		h = h[:i]
 	}
 	for _, r := range s.rules {
-		if h == r.FromURL || strings.HasSuffix(h, "."+r.FromURL) {
+		if h == r.ProxyFrom || strings.HasSuffix(h, "."+r.ProxyFrom) {
 			return r.handler
 		}
 	}
@@ -111,7 +111,7 @@ func (s *Server) hostPolicy(ctx context.Context, host string) error {
 	defer s.mu.RUnlock()
 
 	for _, rule := range s.rules {
-		if host == rule.FromURL || host == "www."+rule.FromURL {
+		if host == rule.ProxyFrom || host == "www."+rule.ProxyFrom {
 			return nil
 		}
 	}
@@ -141,7 +141,7 @@ func parseRules(file string) ([]*Rule, error) {
 
 // makeHandler constructs the appropriate Handler for the given Rule.
 func makeHandler(r *Rule) http.Handler {
-	if h := r.ToURL; h != "" {
+	if h := r.ProxyTo; h != "" {
 		reverseProxy := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				// Set the correct scheme to the request
@@ -163,7 +163,7 @@ func makeHandler(r *Rule) http.Handler {
 					if httpPort == 443 {
 						u.Scheme = "https"
 					}
-					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
+					u.Host = r.ProxyFrom + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
 				res.Header.Set("Content-Security-Policy", "frame-ancestors "+frameSource)

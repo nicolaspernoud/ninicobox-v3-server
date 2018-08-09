@@ -10,13 +10,13 @@ import (
 )
 
 func Test_MainRouter(t *testing.T) {
-	proxyServer, _ := proxy.NewServer("./config/proxys.json", 80)
+	proxyServer, _ := proxy.NewServer("./config/proxys.json", 80, "localhost")
 	router := createMainMux(proxyServer)
 
 	initialUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	updatedUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
-	initialProxys := `[{"name":"Example 1","fromUrl":"www.myexample.com","toUrl":"http://www.example.com","secured":false,"icon":"redeem","rank":"1"},{"name":"Example 2","fromUrl":"www.myexample2.com","toUrl":"http://www.example.com","secured":false,"icon":"redeem","rank":"2"}]`
-	updatedProxysWithSchemes := `[{"name":"Example 1","fromUrl":"http://www.myexample.com","toUrl":"http://www.example.com","icon":"redeem","rank":"1"},{"name":"Example 2","fromUrl":"https://www.myexample2.com","toUrl":"http://www.example.com","icon":"redeem","rank":"2"}]`
+	initialProxys := `[{"name":"Example 1","proxyFrom":"www.myexample.com","proxyTo":"http://www.example.com","secured":false,"icon":"redeem","rank":"1","iframed":true,"iframepath":"/test"},{"name":"Example 2","proxyFrom":"www.myexample2.com","proxyTo":"http://www.example.com","secured":false,"icon":"redeem","rank":"2","iframed":false,"iframepath":""}]`
+	updatedProxysWithSchemes := `[{"name":"Example 1","proxyFrom":"http://www.myexample.com","proxyTo":"http://www.example.com","icon":"redeem","rank":"1","iframed":true,"iframepath":"/test"},{"name":"Example 2","proxyFrom":"https://www.myexample2.com","proxyTo":"http://www.example.com","icon":"redeem","rank":"2","iframed":false,"iframepath":""}]`
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
