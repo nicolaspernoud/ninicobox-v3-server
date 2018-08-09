@@ -23,6 +23,7 @@ import (
 )
 
 var httpPort int
+var frameSource string
 
 // Server implements an http.Handler that acts as either a reverse proxy or
 // a simple file server, as determined by a rule set.
@@ -43,8 +44,9 @@ type Rule struct {
 
 // NewServer constructs a Server that reads rules from file with a period
 // specified by poll.
-func NewServer(file string, httpPortFromMain int) (*Server, error) {
+func NewServer(file string, httpPortFromMain int, frameSourceFromMain string) (*Server, error) {
 	httpPort = httpPortFromMain
+	frameSource = frameSourceFromMain
 	s := new(Server)
 	if err := s.LoadRules(file); err != nil {
 		return nil, err
@@ -164,7 +166,7 @@ func makeHandler(r *Rule) http.Handler {
 					u.Host = r.FromURL + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
-				res.Header.Set("Content-Security-Policy", "frame-ancestors https://*.ninico.fr")
+				res.Header.Set("Content-Security-Policy", "frame-ancestors "+frameSource)
 				res.Header.Set("X-Frame-Options", "DENY")
 				return nil
 			},
