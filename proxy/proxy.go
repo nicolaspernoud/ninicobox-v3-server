@@ -158,7 +158,9 @@ func makeHandler(r *Rule) http.Handler {
 					req.URL.Host = hSplit[1]
 					req.Host = hSplit[1]
 				}
-				req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
+				if r.Login != "" && r.Password != "" {
+					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
+				}
 			},
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location
