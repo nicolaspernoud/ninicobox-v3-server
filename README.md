@@ -21,8 +21,8 @@ A home cloud providing file explorer with permissions and access control lists t
 [x] [Client] Correct proxys saving
 [x] [Client] Add automatic switch to main view on blur
 [x] Toggle token lifespan to 24 hours
-[/] Test security, http2, tls, etc...
-[ ] Limit proxys to registered ones
+[x] Test security, http2, tls, etc...
+[x] Limit proxys to registered ones
 [x] Allow path in tourl
 [x] Correct redirection
 [ ] [Client] clean path

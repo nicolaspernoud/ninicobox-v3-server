@@ -25,6 +25,7 @@ import (
 
 var httpPort int
 var frameSource string
+var mainHostName string
 
 // Server implements an http.Handler that acts as either a reverse proxy or
 // a simple file server, as determined by a rule set.
@@ -47,9 +48,10 @@ type Rule struct {
 
 // NewServer constructs a Server that reads rules from file with a period
 // specified by poll.
-func NewServer(file string, httpPortFromMain int, frameSourceFromMain string) (*Server, error) {
+func NewServer(file string, httpPortFromMain int, frameSourceFromMain string, mainHostNameFromMain string) (*Server, error) {
 	httpPort = httpPortFromMain
 	frameSource = frameSourceFromMain
+	mainHostName = mainHostNameFromMain
 	s := new(Server)
 	if err := s.LoadRules(file); err != nil {
 		return nil, err
@@ -107,12 +109,18 @@ func (s *Server) LoadRules(file string) error {
 	return nil
 }
 
-// hostPolicy implements autocert.HostPolicy by consulting
+// HostPolicy implements autocert.HostPolicy by consulting
 // the rules list for a matching host name.
-func (s *Server) hostPolicy(ctx context.Context, host string) error {
+func (s *Server) HostPolicy(ctx context.Context, host string) error {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	// Check if host is main host
+	if host == mainHostName || host == "www."+mainHostName {
+		return nil
+	}
+
+	// If not check if the host is in allowed rules
 	for _, rule := range s.rules {
 		if host == rule.ProxyFrom || host == "www."+rule.ProxyFrom {
 			return nil

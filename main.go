@@ -46,7 +46,7 @@ func main() {
 	} else {
 		proxyPort = *debugModePort
 	}
-	proxyServer, err := proxy.NewServer("./config/proxys.json", proxyPort, *frameSource)
+	proxyServer, err := proxy.NewServer("./config/proxys.json", proxyPort, *frameSource, *mainHostName)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
@@ -65,8 +65,9 @@ func main() {
 		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*debugModePort), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", corsMiddleware(logMiddleware(rootMux))))
 	} else {
 		certManager := autocert.Manager{
-			Prompt: autocert.AcceptTOS,
-			Cache:  autocert.DirCache(*letsCacheDir),
+			Prompt:     autocert.AcceptTOS,
+			Cache:      autocert.DirCache(*letsCacheDir),
+			HostPolicy: proxyServer.HostPolicy,
 		}
 
 		server := &http.Server{

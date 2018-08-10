@@ -19,7 +19,7 @@ func TestServer(t *testing.T) {
 	})
 	defer os.Remove(ruleFile)
 
-	s, err := NewServer(ruleFile, 2080, "localhost")
+	s, err := NewServer(ruleFile, 2080, "localhost", "localhost")
 	if err != nil {
 		t.Fatal(err)
 	}
