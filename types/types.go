@@ -192,6 +192,8 @@ type Proxy struct {
 	Rank       string `json:"rank"`
 	Iframed    bool   `json:"iframed"`
 	IframePath string `json:"iframepath"`
+	Login      string `json:"login"`
+	Password   string `json:"password"`
 }
 
 // SendProxys send proxys as response from an http requests

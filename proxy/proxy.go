@@ -8,6 +8,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -38,6 +39,8 @@ type Rule struct {
 	ProxyFrom string // to match against request Host header
 	ProxyTo   string // non-empty if reverse proxy
 	Secured   bool   // true if the handler is JWT secured
+	Login     string // Basic auth login for automatic login
+	Password  string // Basic auth password for automatic login
 
 	handler http.Handler
 }
@@ -155,14 +158,13 @@ func makeHandler(r *Rule) http.Handler {
 					req.URL.Host = hSplit[1]
 					req.Host = hSplit[1]
 				}
+				req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
 			},
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location
 				u, err := res.Location()
 				if err == nil {
-					if httpPort == 443 {
-						u.Scheme = "https"
-					}
+					u.Scheme = "https"
 					u.Host = r.ProxyFrom + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
