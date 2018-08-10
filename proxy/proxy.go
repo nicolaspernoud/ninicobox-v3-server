@@ -157,7 +157,7 @@ func makeHandler(r *Rule) http.Handler {
 			Director: func(req *http.Request) {
 				// Set the correct scheme to the request
 				if !strings.HasPrefix(h, "http") {
-					req.URL.Scheme = "http"
+					req.URL.Scheme = "https"
 					req.URL.Host = h
 					req.Host = h
 				} else {
