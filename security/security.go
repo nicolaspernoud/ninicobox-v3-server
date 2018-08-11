@@ -125,7 +125,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				ctx = context.WithValue(ctx, contextRole, claims.Role)
 				// if the JWT origin is a query set the token as cookie in the response
 				if origin == "query" {
-					w.Header().Set("Set-Cookie", "jwt_token="+JWT+"; Path=/")
+					w.Header().Set("Set-Cookie", "jwt_token="+JWT+"; Path=/; Expires="+time.Unix(claims.ExpiresAt, 0).Format(time.RFC1123))
 				}
 				next.ServeHTTP(w, req.WithContext(ctx))
 			} else {
