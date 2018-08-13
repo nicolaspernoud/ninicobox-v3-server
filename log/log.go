@@ -51,7 +51,7 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 		ipcache.content = make(map[string]string)
 	}
 
-	// Get ip from remote adress
+	// Get ip from remote address
 	address := strings.Split(req.RemoteAddr, ":")[0]
 
 	// First check if the ip is in memory cache
@@ -90,6 +90,6 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 		return "ip not found"
 	}
 	ipFromDB := fmt.Sprintf("%v, %v", record.City.Names["fr"], record.Country.Names["fr"])
-	ipcache.content[req.RemoteAddr] = ipFromDB
+	ipcache.content[address] = ipFromDB
 	return ipFromDB
 }

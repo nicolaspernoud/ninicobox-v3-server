@@ -27,7 +27,8 @@ A home cloud providing file explorer with permissions and access control lists t
 [x] Correct redirection
 [ ] [Client] clean path
 [/] Documentation
-[/] Self doc + saves + mcd
+[x] Self doc + saves + mcd
 [x] Correct informations display
 [x] [Client] display techical proxys as icons
 [ ] Add compression
+[ ] Correct proxy input scrolling on small screen
