@@ -15,7 +15,7 @@ func TestGetCityAndCountryFromRequest(t *testing.T) {
 	requestFromLocalHost.RemoteAddr = "[::1]:1234"
 
 	requestFromLondon := httptest.NewRequest("GET", "/test", strings.NewReader(""))
-	requestFromLondon.RemoteAddr = "81.2.69.142"
+	requestFromLondon.RemoteAddr = "81.2.69.142:1234"
 
 	requestWithLocalIP := httptest.NewRequest("GET", "/test", strings.NewReader(""))
 
