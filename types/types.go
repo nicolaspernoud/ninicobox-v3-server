@@ -40,9 +40,9 @@ type User struct {
 // SendUsers send users as response from an http requests
 func SendUsers(w http.ResponseWriter, req *http.Request) {
 	var users []User
-	error := Load("./config/users.json", &users)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	err := Load("./config/users.json", &users)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 	} else {
 		json.NewEncoder(w).Encode(users)
 	}
@@ -66,9 +66,9 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if user.Password != "" {
-			hash, error := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-			if error != nil {
-				http.Error(w, error.Error(), 400)
+			hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+			if err != nil {
+				http.Error(w, err.Error(), 400)
 				return
 			}
 			users[key].PasswordHash = string(hash)
@@ -121,9 +121,9 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	var filesacls []FilesACL
-	error := Load("./config/filesacls.json", &filesacls)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	err := Load("./config/filesacls.json", &filesacls)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 	} else {
 		json.NewEncoder(w).Encode(filesacls)
 	}
@@ -149,9 +149,9 @@ func SendInfos(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "method not allowed", 405)
 		return
 	}
-	infos, error := InfosFromJSONFiles()
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	infos, err := InfosFromJSONFiles()
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 	} else {
 		json.NewEncoder(w).Encode(infos)
 	}
@@ -199,9 +199,9 @@ type Proxy struct {
 // SendProxys send proxys as response from an http requests
 func SendProxys(w http.ResponseWriter, req *http.Request) {
 	var proxys []Proxy
-	error := Load("./config/proxys.json", &proxys)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	err := Load("./config/proxys.json", &proxys)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 	} else {
 		json.NewEncoder(w).Encode(proxys)
 	}

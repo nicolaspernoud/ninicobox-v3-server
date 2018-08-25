@@ -66,8 +66,7 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 		}
 
 		// Try to match an user with the credentials provided
-		var user types.User
-		user, err = types.MatchUser(sentUser)
+		user, err := types.MatchUser(sentUser)
 		if err != nil {
 			http.Error(w, err.Error(), 403)
 			log.Logger.Printf("| %v | Basic auth failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
@@ -144,16 +143,15 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	var sentUser types.User
-	error := json.NewDecoder(req.Body).Decode(&sentUser)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	err := json.NewDecoder(req.Body).Decode(&sentUser)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 		return
 	}
 	// Try to match the user with an user in the database
-	var user types.User
-	user, error = types.MatchUser(sentUser)
-	if error != nil {
-		http.Error(w, error.Error(), 403)
+	user, err := types.MatchUser(sentUser)
+	if err != nil {
+		http.Error(w, err.Error(), 403)
 		log.Logger.Printf("| %v | Login failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
 		return
 	}
@@ -167,9 +165,9 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 			IssuedAt:  time.Now().Unix(),
 		},
 	})
-	tokenString, error := token.SignedString(jWTSignature)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	tokenString, err := token.SignedString(jWTSignature)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 		return
 	}
 	fmt.Fprintf(w, tokenString)
@@ -182,9 +180,9 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "method not allowed", 405)
 		return
 	}
-	body, error := ioutil.ReadAll(req.Body)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	body, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 		return
 	}
 	path := string(body)
@@ -206,9 +204,9 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 			IssuedAt:  time.Now().Unix(),
 		},
 	})
-	tokenString, error := token.SignedString(jWTSignature)
-	if error != nil {
-		http.Error(w, error.Error(), 400)
+	tokenString, err := token.SignedString(jWTSignature)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
 		return
 	}
 	fmt.Fprintf(w, tokenString)

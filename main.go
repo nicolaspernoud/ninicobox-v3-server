@@ -19,7 +19,7 @@ var (
 	letsCacheDir  = flag.String("letsencrypt_cache", "./letsencrypt_cache", "letsencrypt cache `directory`")
 	mainHostName  = flag.String("hostname", "localhost", "Main hostname, default to localhost")
 	frameSource   = flag.String("framesource", "localhost", "Location from where iframes are allowed, default to localhost")
-	debugMode     = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT")
+	debugMode     = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT signature")
 	debugModePort = flag.Int("debug_mode_port", 2443, "HTTP port to serve on (on debug mode)")
 
 	adminAuth = security.AuthenticationMiddleware{

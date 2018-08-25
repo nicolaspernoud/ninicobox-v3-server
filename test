@@ -1,4 +1,4 @@
-POST http://localhost:2080/api/login HTTP/1.1
+POST https://localhost:2443/api/login HTTP/1.1
 Content-Type: application/json
 
 {
@@ -6,7 +6,7 @@ Content-Type: application/json
     "password": "password"
 }
 
-POST http://localhost:2080/api/login HTTP/1.1
+POST https://localhost:2443/api/login HTTP/1.1
 Content-Type: application/json
 
 {
@@ -14,17 +14,17 @@ Content-Type: application/json
     "password": "password"
 }
 
-POST http://localhost:2080/api/common/getsharetoken
+POST https://localhost:2443/api/common/getsharetoken
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJwYXRoIjoiIiwic2hhcmluZ1VzZXJMb2dpbiI6IiIsImV4cCI6MTUzMjg2OTgxNywiaWF0IjoxNTMyODY2MjE3fQ.9cz9i0tlAv8YSsHUUrCPObCR5MChFLdLZLT-DKj62Wg
 
 /api/files/usersrw/File users 01.txt
 
-GET http://localhost:2080/api/files/usersrw/File%20users%2002.txt
+GET https://localhost:2443/api/files/usersrw/File%20users%2002.txt
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwibG9naW4iOiJzaGFyZSIsIm5hbWUiOiIiLCJzdXJuYW1lIjoiIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIiLCJwYXRoIjoiL2FwaS9maWxlcy91c2Vyc3J3L0ZpbGUgdXNlcnMgMDEudHh0Iiwic2hhcmluZ1VzZXJMb2dpbiI6InVzZXIiLCJleHAiOjE1MzM0NzEwNDMsImlhdCI6MTUzMjg2NjI0M30.mdkM-abABf1RHgq8wuPGeqOEF58-lIi2xGfmDXNCYcI
 
-GET http://www.proxy.com:2080
+GET https://www.proxy.com:2443
 
-POST http://localhost:2080/api/login HTTP/1.1
+POST https://localhost:2443/api/login HTTP/1.1
 Content-Type: application/json
 
 {
@@ -32,20 +32,22 @@ Content-Type: application/json
     "password": "password"
 }
 
-GET http://localhost:2080/api/infos
+GET https://localhost:2443/api/infos
 
-OPTIONS http://localhost:2080/api/login
+OPTIONS https://localhost:2443/api/login
 
-GET http://localhost:2080/api/common/filesacls
+GET https://localhost:2443/api/common/filesacls
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzI5NTg0ODQsImlhdCI6MTUzMjk1NDg4NH0.ScU8YGWpzwCV2iuoX6Tj5nK-JsKKDb6If2N1l1cViyw
 
-GET http://localhost:2080/api/files/usersrw/File%20users%2002.txt?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzMwNDQ3NTUsImlhdCI6MTUzMzA0MTE1NX0.RsuLGXvTJwEhqd-JiQliPC8h7KPfTq2zRaGtkNjMGTM
+GET https://localhost:2443/api/files/usersrw/File%20users%2002.txt?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzMwNDQ3NTUsImlhdCI6MTUzMzA0MTE1NX0.RsuLGXvTJwEhqd-JiQliPC8h7KPfTq2zRaGtkNjMGTM
 
-GET http://localhost:2080/api/files/usersrw/Folder%20users%2001/../?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzMwNDQ3NTUsImlhdCI6MTUzMzA0MTE1NX0.RsuLGXvTJwEhqd-JiQliPC8h7KPfTq2zRaGtkNjMGTM
+GET https://localhost:2443/api/files/usersrw/Folder%20users%2001/../?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzMwNDQ3NTUsImlhdCI6MTUzMzA0MTE1NX0.RsuLGXvTJwEhqd-JiQliPC8h7KPfTq2zRaGtkNjMGTM
 
-GET http://localhost:2080/api/files/usersrw/Folder%20users%2001/../?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzMwNDkxODIsImlhdCI6MTUzMzA0NTU4Mn0.IxW8hZkKyuUAAp4xRLDII4ks5gKWwrC4-a2RrfpK_IE
+GET https://localhost:2443/api/files/usersrw/Folder%20users%2001/../?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwibG9naW4iOiJ1c2VyIiwibmFtZSI6IlVzIiwic3VybmFtZSI6IkVSIiwicm9sZSI6InVzZXIiLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkYld4dEhMRS4zcEZremcuWFA0ZVIxZVNCSWtVT0hpQ2FHdlRVVDNoaUJ4bWhxdHlSeWRBMjYiLCJleHAiOjE1MzMwNDkxODIsImlhdCI6MTUzMzA0NTU4Mn0.IxW8hZkKyuUAAp4xRLDII4ks5gKWwrC4-a2RrfpK_IE
 
-GET http://localhost:2080/api/files/usersrw/File users 01.txt
+GET https://localhost:2443/api/files/usersrw/File users 01.txt
 Authorization: Basic token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzM2NzY5ODgsImlhdCI6MTUzMzY3MzM4OH0.gsp0pc8hMDAd_6aihXrSjwIUp-lKSZSRWlAhZYXdj-Q
 
-OPTIONS http://localhost:2080/api/files/usersrw/
+OPTIONS https://localhost:2443/api/files/usersrw/
+
+net use t: https://localhost:2443/api/files/adminsrw/ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIiLCJleHAiOjE1MzUyODQ4NDEsImlhdCI6MTUzNTE5ODQ0MX0.6Vg_H-RBNEZiKEph80QK2TrHOkqM3MJof6ZVVwGmKi8 /user:admin /persistent:No
