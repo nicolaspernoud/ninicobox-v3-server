@@ -96,17 +96,17 @@ func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) ht
 // ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
 func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		JWT, origin, errExtractToken := ExtractToken(req)
-		if errExtractToken != nil {
+		JWT, origin, err := ExtractToken(req)
+		if err != nil {
 			w.Header().Set("WWW-Authenticate", `Basic realm="server"`)
-			http.Error(w, errExtractToken.Error(), 401)
+			http.Error(w, err.Error(), 401)
 			return
 		}
-		token, errParseToken := jwt.ParseWithClaims(JWT, &types.JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(JWT, &types.JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
 			return jWTSignature, nil
 		})
-		if errParseToken != nil {
-			http.Error(w, errParseToken.Error(), 403)
+		if err != nil {
+			http.Error(w, err.Error(), 403)
 			return
 		}
 		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
@@ -119,7 +119,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				http.Error(w, "the share token can only be used for the given path", 403)
 				return
 			}
-			if errRole := checkUserRoleIsAllowed(claims.Role, allowedRoles); errRole == nil {
+			if err := checkUserRoleIsAllowed(claims.Role, allowedRoles); err == nil {
 				ctx := context.WithValue(req.Context(), contextLogin, claims.Login)
 				ctx = context.WithValue(ctx, contextRole, claims.Role)
 				// if the JWT origin is a query set the token as cookie in the response
@@ -128,7 +128,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				}
 				next.ServeHTTP(w, req.WithContext(ctx))
 			} else {
-				http.Error(w, errRole.Error(), 403)
+				http.Error(w, err.Error(), 403)
 			}
 		} else {
 			http.Error(w, "invalid authorization token", 400)
