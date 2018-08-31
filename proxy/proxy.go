@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nicolaspernoud/ninicobox-v3-server/security"
+	"../security"
 )
 
 var httpPort int

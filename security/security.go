@@ -13,9 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"../log"
+	"../types"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/nicolaspernoud/ninicobox-v3-server/log"
-	"github.com/nicolaspernoud/ninicobox-v3-server/types"
 )
 
 type key int
@@ -29,15 +29,24 @@ var (
 	jWTSignature []byte
 )
 
-// Init sets the jWTSignature according to debug mode on or off
-func Init(debugMode bool) {
-	if debugMode {
-		jWTSignature = []byte("debug_jwt_signature_do_not_use_in_production")
-	} else {
-		jWTSignature = randomByteArray(48)
-
+// init sets the jWTSignature
+func init() {
+	var jWTConfig struct {
+		JWTSignature string
 	}
-	log.Logger.Printf("Token signing key is %v\n", string(jWTSignature))
+	err := types.Load("./config/jwtsignature.json", &jWTConfig)
+	if err != nil {
+		jWTSignature = randomByteArray(48)
+		jWTConfig.JWTSignature = string(jWTSignature)
+		err := types.Save("./config/jwtsignature.json", jWTConfig)
+		if err != nil {
+			log.Logger.Println("Token signing key could not be saved")
+		}
+	} else {
+		jWTSignature = []byte(jWTConfig.JWTSignature)
+	}
+	log.Logger.Printf("Token signing key is %v\n", jWTConfig.JWTSignature)
+
 }
 
 // ValidateBasicAuthMiddleware tests if a Basic Auth header is present, and valid, in the request and returns an Error if not

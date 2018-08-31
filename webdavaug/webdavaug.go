@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/nicolaspernoud/ninicobox-v3-server/log"
-	"github.com/nicolaspernoud/ninicobox-v3-server/security"
+	"../log"
+	"../security"
 	"golang.org/x/net/webdav"
 )
 

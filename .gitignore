@@ -12,3 +12,6 @@ client
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Specific to the project
+config/jwtsignature.json

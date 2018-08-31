@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/nicolaspernoud/ninicobox-v3-server/proxy"
-	"github.com/nicolaspernoud/ninicobox-v3-server/tester"
+	"./proxy"
+	"./tester"
 )
 
 func Test_MainRouter(t *testing.T) {

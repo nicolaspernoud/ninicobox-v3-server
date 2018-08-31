@@ -7,20 +7,20 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nicolaspernoud/ninicobox-v3-server/log"
-	"github.com/nicolaspernoud/ninicobox-v3-server/proxy"
-	"github.com/nicolaspernoud/ninicobox-v3-server/security"
-	"github.com/nicolaspernoud/ninicobox-v3-server/types"
-	"github.com/nicolaspernoud/ninicobox-v3-server/webdavaug"
+	"./log"
+	"./proxy"
+	"./security"
+	"./types"
+	"./webdavaug"
 	"golang.org/x/crypto/acme/autocert"
 )
 
 var (
-	letsCacheDir  = flag.String("letsencrypt_cache", "./letsencrypt_cache", "letsencrypt cache `directory`")
-	mainHostName  = flag.String("hostname", "localhost", "Main hostname, default to localhost")
-	frameSource   = flag.String("framesource", "localhost", "Location from where iframes are allowed, default to localhost")
-	debugMode     = flag.Bool("debug", false, "Debug mode, allows CORS and debug JWT signature")
-	debugModePort = flag.Int("debug_mode_port", 2443, "HTTP port to serve on (on debug mode)")
+	letsCacheDir = flag.String("letsencrypt_cache", "./letsencrypt_cache", "letsencrypt cache `directory`")
+	mainHostName = flag.String("hostname", "localhost", "Main hostname, default to localhost")
+	frameSource  = flag.String("framesource", "localhost", "Location from where iframes are allowed, default to localhost")
+	debugMode    = flag.Bool("debug", false, "Debug mode, disable let's encrypt, enable CORS and more logging")
+	port         = flag.Int("https_port", 443, "HTTPS port to serve on (default to 443)")
 
 	adminAuth = security.AuthenticationMiddleware{
 		AllowedRoles: []string{"admin"},
@@ -36,17 +36,8 @@ func main() {
 	log.Logger.Println("Server is starting...")
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
-	// Initialize security with debug flag
-	security.Init(*debugMode)
-
 	// Create the proxy handler
-	var proxyPort int
-	if !*debugMode {
-		proxyPort = 443
-	} else {
-		proxyPort = *debugModePort
-	}
-	proxyServer, err := proxy.NewServer("./config/proxys.json", proxyPort, *frameSource, *mainHostName)
+	proxyServer, err := proxy.NewServer("./config/proxys.json", *port, *frameSource, *mainHostName)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
@@ -60,9 +51,9 @@ func main() {
 	rootMux.Handle(*mainHostName+"/", webSecurityMiddleware(mainMux))
 	rootMux.Handle("/", proxyHandler)
 
-	// Serve locally with http on debug mode or with let's encrypt on production mode
+	// Serve locally with https on debug mode or with let's encrypt on production mode
 	if *debugMode {
-		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*debugModePort), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", corsMiddleware(logMiddleware(rootMux))))
+		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*port), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", corsMiddleware(logMiddleware(rootMux))))
 	} else {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
@@ -71,7 +62,7 @@ func main() {
 		}
 
 		server := &http.Server{
-			Addr:    ":443",
+			Addr:    ":" + strconv.Itoa(*port),
 			Handler: rootMux,
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
