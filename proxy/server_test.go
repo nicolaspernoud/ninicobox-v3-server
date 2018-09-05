@@ -8,14 +8,17 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"../types"
 )
 
 func TestServer(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(testHandler))
 	defer target.Close()
 
-	ruleFile := writeRules([]*Rule{
-		{ProxyFrom: "example.com", ProxyTo: target.Listener.Addr().String()},
+	ruleFile := writeRules([]*rule{
+		{Rule: types.Rule{Host: "example.com", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
+		{Rule: types.Rule{Host: "example.org", IsProxy: false, Serve: "testdata"}},
 	})
 	defer os.Remove(ruleFile)
 
@@ -31,6 +34,7 @@ func TestServer(t *testing.T) {
 	}{
 		{"http://example.com/", 200, "OK"},
 		{"http://foo.example.com/", 200, "OK"},
+		{"http://example.org/", 200, "contents of index.html\n"},
 		{"http://example.net/", 404, "Not found.\n"},
 		{"http://fooexample.com/", 404, "Not found.\n"},
 	}
@@ -53,7 +57,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func writeRules(rules []*Rule) (name string) {
+func writeRules(rules []*rule) (name string) {
 	f, err := ioutil.TempFile("", "webfront-rules")
 	if err != nil {
 		panic(err)

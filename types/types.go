@@ -182,58 +182,60 @@ func InfosFromJSONFiles() (Infos, error) {
 	}, nil
 }
 
-// Proxy represents a web server to proxy
-type Proxy struct {
+// Rule represents a rule to serve static content or to proxy a web server
+type Rule struct {
 	Name       string `json:"name"`
-	ProxyFrom  string `json:"proxyFrom"`
-	ProxyTo    string `json:"proxyTo"`
-	Secured    bool   `json:"secured"`
+	IsProxy    bool   `json:"isProxy"`   // true if reverse proxy
+	Host       string `json:"host"`      // to match against request Host header
+	ForwardTo  string `json:"forwardTo"` // non-empty if reverse proxy
+	Serve      string `json:"serve"`     // non-empty if file server
+	Secured    bool   `json:"secured"`   // true if the handler is JWT secured
 	Icon       string `json:"icon"`
 	Rank       string `json:"rank"`
 	Iframed    bool   `json:"iframed"`
 	IframePath string `json:"iframepath"`
-	Login      string `json:"login"`
-	Password   string `json:"password"`
+	Login      string `json:"login"`    // Basic auth login for automatic login
+	Password   string `json:"password"` // Basic auth password for automatic login
 }
 
-// SendProxys send proxys as response from an http requests
-func SendProxys(w http.ResponseWriter, req *http.Request) {
-	var proxys []Proxy
-	err := Load("./config/proxys.json", &proxys)
+// SendRules send rules as response from an http requests
+func SendRules(w http.ResponseWriter, req *http.Request) {
+	var rules []Rule
+	err := Load("./config/rules.json", &rules)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
-		json.NewEncoder(w).Encode(proxys)
+		json.NewEncoder(w).Encode(rules)
 	}
 }
 
-// SetProxys sets proxys from an http request
-func SetProxys(w http.ResponseWriter, req *http.Request) {
-	var proxys []Proxy
+// SetRules sets rules from an http request
+func SetRules(w http.ResponseWriter, req *http.Request) {
+	var rules []Rule
 	if req.Body == nil {
 		http.Error(w, "please send a request body", 400)
 		return
 	}
-	err := json.NewDecoder(req.Body).Decode(&proxys)
+	err := json.NewDecoder(req.Body).Decode(&rules)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	// Strip schemes from urls
-	for key, val := range proxys {
-		if strings.HasPrefix(val.ProxyFrom, "http://") {
-			proxys[key].ProxyFrom = strings.TrimPrefix(val.ProxyFrom, "http://")
+	// Strip schemes from hosts
+	for key, val := range rules {
+		if strings.HasPrefix(val.Host, "http://") {
+			rules[key].Host = strings.TrimPrefix(val.Host, "http://")
 		}
-		if strings.HasPrefix(val.ProxyFrom, "https://") {
-			proxys[key].ProxyFrom = strings.TrimPrefix(val.ProxyFrom, "https://")
+		if strings.HasPrefix(val.Host, "https://") {
+			rules[key].Host = strings.TrimPrefix(val.Host, "https://")
 		}
 	}
-	err = Save("./config/proxys.json", &proxys)
+	err = Save("./config/rules.json", &rules)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	SendProxys(w, req)
+	SendRules(w, req)
 }
 
 // Save saves a representation of v to the file at path.

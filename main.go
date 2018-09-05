@@ -37,7 +37,7 @@ func main() {
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
 	// Create the proxy handler
-	proxyServer, err := proxy.NewServer("./config/proxys.json", *port, *frameSource, *mainHostName)
+	proxyServer, err := proxy.NewServer("./config/rules.json", *port, *frameSource, *mainHostName)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
@@ -109,14 +109,14 @@ func createMainMux(proxyServer *proxy.Server) http.Handler {
 	})
 	adminMux.HandleFunc("/proxys", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost {
-			types.SetProxys(w, req)
-			if err := proxyServer.LoadRules("./config/proxys.json"); err != nil {
+			types.SetRules(w, req)
+			if err := proxyServer.LoadRules("./config/rules.json"); err != nil {
 				http.Error(w, "error loading proxy rules", 400)
 			}
 			return
 		}
 		if req.Method == http.MethodGet {
-			types.SendProxys(w, req)
+			types.SendRules(w, req)
 			return
 		}
 		http.Error(w, "method not allowed", 405)

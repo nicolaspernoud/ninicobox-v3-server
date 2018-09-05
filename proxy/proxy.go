@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"../security"
+	"../types"
 )
 
 var httpPort int
@@ -32,17 +33,11 @@ var mainHostName string
 type Server struct {
 	mu    sync.RWMutex // guards the fields below
 	last  time.Time
-	rules []*Rule
+	rules []*rule
 }
 
-// Rule represents a rule in a configuration file.
-type Rule struct {
-	ProxyFrom string // to match against request Host header
-	ProxyTo   string // non-empty if reverse proxy
-	Secured   bool   // true if the handler is JWT secured
-	Login     string // Basic auth login for automatic login
-	Password  string // Basic auth password for automatic login
-
+type rule struct {
+	types.Rule
 	handler http.Handler
 }
 
@@ -80,7 +75,7 @@ func (s *Server) handler(req *http.Request) http.Handler {
 		h = h[:i]
 	}
 	for _, r := range s.rules {
-		if h == r.ProxyFrom || strings.HasSuffix(h, "."+r.ProxyFrom) {
+		if h == r.Host || strings.HasSuffix(h, "."+r.Host) {
 			return r.handler
 		}
 	}
@@ -122,7 +117,7 @@ func (s *Server) HostPolicy(ctx context.Context, host string) error {
 
 	// If not check if the host is in allowed rules
 	for _, rule := range s.rules {
-		if host == rule.ProxyFrom || host == "www."+rule.ProxyFrom {
+		if host == rule.Host || host == "www."+rule.Host {
 			return nil
 		}
 	}
@@ -131,13 +126,13 @@ func (s *Server) HostPolicy(ctx context.Context, host string) error {
 
 // parseRules reads rule definitions from file, constructs the Rule handlers,
 // and returns the resultant Rules.
-func parseRules(file string) ([]*Rule, error) {
+func parseRules(file string) ([]*rule, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	var rules []*Rule
+	var rules []*rule
 	if err := json.NewDecoder(f).Decode(&rules); err != nil {
 		return nil, err
 	}
@@ -151,20 +146,20 @@ func parseRules(file string) ([]*Rule, error) {
 }
 
 // makeHandler constructs the appropriate Handler for the given Rule.
-func makeHandler(r *Rule) http.Handler {
-	if h := r.ProxyTo; h != "" {
+func makeHandler(r *rule) http.Handler {
+	if fwdTo := r.ForwardTo; r.IsProxy && fwdTo != "" {
 		reverseProxy := &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				// Set the correct scheme to the request
-				if !strings.HasPrefix(h, "http") {
+				if !strings.HasPrefix(fwdTo, "http") {
 					req.URL.Scheme = "http"
-					req.URL.Host = h
-					req.Host = h
+					req.URL.Host = fwdTo
+					req.Host = fwdTo
 				} else {
-					hSplit := strings.Split(h, "://")
-					req.URL.Scheme = hSplit[0]
-					req.URL.Host = hSplit[1]
-					req.Host = hSplit[1]
+					fwdToSplit := strings.Split(fwdTo, "://")
+					req.URL.Scheme = fwdToSplit[0]
+					req.URL.Host = fwdToSplit[1]
+					req.Host = fwdToSplit[1]
 				}
 				if r.Login != "" && r.Password != "" {
 					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
@@ -175,7 +170,7 @@ func makeHandler(r *Rule) http.Handler {
 				u, err := res.Location()
 				if err == nil {
 					u.Scheme = "https"
-					u.Host = r.ProxyFrom + ":" + strconv.Itoa(httpPort)
+					u.Host = r.Host + ":" + strconv.Itoa(httpPort)
 					res.Header.Set("Location", u.String())
 				}
 				res.Header.Set("Content-Security-Policy", "frame-ancestors "+frameSource)
@@ -187,6 +182,9 @@ func makeHandler(r *Rule) http.Handler {
 			return reverseProxy
 		}
 		return security.ValidateJWTMiddleware(reverseProxy, []string{"admin"})
+	}
+	if d := r.Serve; !r.IsProxy && d != "" {
+		return http.FileServer(http.Dir(d))
 	}
 	return nil
 }
