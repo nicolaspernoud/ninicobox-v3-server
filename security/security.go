@@ -45,8 +45,7 @@ func init() {
 	} else {
 		jWTSignature = []byte(jWTConfig.JWTSignature)
 	}
-	log.Logger.Printf("Token signing key is %v\n", jWTConfig.JWTSignature)
-
+	log.Logger.Println("Token signing key set")
 }
 
 // ValidateBasicAuthMiddleware tests if a Basic Auth header is present, and valid, in the request and returns an Error if not
