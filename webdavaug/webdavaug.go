@@ -90,7 +90,7 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if !info.IsDir() { // The file will be handled by webdav server
-				filename := strings.TrimPrefix(r.URL.Path, wdaug.prefix+"/")
+				filename := filepath.Base(r.URL.Path)
 				w.Header().Set("Content-Disposition", "attachment; filename="+filename)
 			} else {
 				h = wdaug.zipHandler
