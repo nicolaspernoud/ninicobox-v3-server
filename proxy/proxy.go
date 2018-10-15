@@ -24,7 +24,7 @@ import (
 	"../types"
 )
 
-var httpPort int
+var port int
 var frameSource string
 var mainHostName string
 
@@ -43,8 +43,8 @@ type rule struct {
 
 // NewServer constructs a Server that reads rules from file with a period
 // specified by poll.
-func NewServer(file string, httpPortFromMain int, frameSourceFromMain string, mainHostNameFromMain string) (*Server, error) {
-	httpPort = httpPortFromMain
+func NewServer(file string, portFromMain int, frameSourceFromMain string, mainHostNameFromMain string) (*Server, error) {
+	port = portFromMain
 	frameSource = frameSourceFromMain
 	mainHostName = mainHostNameFromMain
 	s := new(Server)
@@ -154,12 +154,10 @@ func makeHandler(r *rule) http.Handler {
 				if !strings.HasPrefix(fwdTo, "http") {
 					req.URL.Scheme = "http"
 					req.URL.Host = fwdTo
-					req.Host = fwdTo
 				} else {
 					fwdToSplit := strings.Split(fwdTo, "://")
 					req.URL.Scheme = fwdToSplit[0]
 					req.URL.Host = fwdToSplit[1]
-					req.Host = fwdToSplit[1]
 				}
 				if r.Login != "" && r.Password != "" {
 					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
@@ -168,9 +166,9 @@ func makeHandler(r *rule) http.Handler {
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location
 				u, err := res.Location()
-				if err == nil {
+				if err == nil && !strings.HasSuffix(u.Host, r.Host) {
 					u.Scheme = "https"
-					u.Host = r.Host + ":" + strconv.Itoa(httpPort)
+					u.Host = r.Host + ":" + strconv.Itoa(port)
 					res.Header.Set("Location", u.String())
 				}
 				res.Header.Set("Content-Security-Policy", "frame-ancestors "+frameSource)
