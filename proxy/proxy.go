@@ -166,9 +166,11 @@ func makeHandler(r *rule) http.Handler {
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location
 				u, err := res.Location()
-				if err == nil && !strings.HasSuffix(u.Host, r.Host) {
+				if err == nil {
 					u.Scheme = "https"
-					u.Host = r.Host + ":" + strconv.Itoa(port)
+					if !strings.HasSuffix(u.Host, r.Host) {
+						u.Host = r.Host + ":" + strconv.Itoa(port)
+					}
 					res.Header.Set("Location", u.String())
 				}
 				res.Header.Set("Content-Security-Policy", "frame-ancestors "+frameSource)
