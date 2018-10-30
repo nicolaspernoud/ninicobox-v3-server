@@ -17,11 +17,10 @@ func DoRequest(t *testing.T, router http.Handler, method string, route string, a
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 	if status := rr.Code; status != expectedStatus {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, expectedStatus)
+		t.Errorf("Tested %v %v %v ; handler returned wrong status code: got %v want %v", method, route, payload, status, expectedStatus)
 	}
 	if !strings.HasPrefix(rr.Body.String(), expectedBody) {
-		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expectedBody)
+		t.Errorf("Tested %v %v %v ; handler returned unexpected body: got %v want %v", method, route, payload, rr.Body.String(), expectedBody)
 	}
 	return string(rr.Body.String())
 }

@@ -1,4 +1,4 @@
-package proxy
+package appserver
 
 import (
 	"bytes"
@@ -22,15 +22,15 @@ func TestServer(t *testing.T) {
 	redirectGlobalTarget := httptest.NewServer(http.HandlerFunc(testRedirectGlobalHandler))
 	defer redirectGlobalTarget.Close()
 
-	ruleFile := writeRules([]*rule{
-		{Rule: types.Rule{Host: "example.com", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
-		{Rule: types.Rule{Host: "example.org", IsProxy: false, Serve: "testdata"}},
-		{Rule: types.Rule{Host: "example.localredirect", IsProxy: true, ForwardTo: redirectLocalTarget.Listener.Addr().String()}},
-		{Rule: types.Rule{Host: "example.globalredirect", IsProxy: true, ForwardTo: redirectGlobalTarget.Listener.Addr().String()}},
+	appFile := writeApps([]*app{
+		{App: types.App{Host: "example.com", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
+		{App: types.App{Host: "example.org", IsProxy: false, Serve: "testdata"}},
+		{App: types.App{Host: "example.localredirect", IsProxy: true, ForwardTo: redirectLocalTarget.Listener.Addr().String()}},
+		{App: types.App{Host: "example.globalredirect", IsProxy: true, ForwardTo: redirectGlobalTarget.Listener.Addr().String()}},
 	})
-	defer os.Remove(ruleFile)
+	defer os.Remove(appFile)
 
-	s, err := NewServer(ruleFile, 443, "localhost", "localhost")
+	s, err := NewServer(appFile, 443, "localhost", "localhost")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,13 +95,13 @@ func testRedirectGlobalHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://global."+r.Host, http.StatusFound)
 }
 
-func writeRules(rules []*rule) (name string) {
-	f, err := ioutil.TempFile("", "webfront-rules")
+func writeApps(apps []*app) (name string) {
+	f, err := ioutil.TempFile("", "webfront-apps")
 	if err != nil {
 		panic(err)
 	}
 	defer f.Close()
-	err = json.NewEncoder(f).Encode(rules)
+	err = json.NewEncoder(f).Encode(apps)
 	if err != nil {
 		panic(err)
 	}

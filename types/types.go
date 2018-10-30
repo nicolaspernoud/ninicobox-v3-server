@@ -182,8 +182,8 @@ func InfosFromJSONFiles() (Infos, error) {
 	}, nil
 }
 
-// Rule represents a rule to serve static content or to proxy a web server
-type Rule struct {
+// App represents a app serving static content proxying a web server
+type App struct {
 	Name       string `json:"name"`
 	IsProxy    bool   `json:"isProxy"`   // true if reverse proxy
 	Host       string `json:"host"`      // to match against request Host header
@@ -198,44 +198,44 @@ type Rule struct {
 	Password   string `json:"password"` // Basic auth password for automatic login
 }
 
-// SendRules send rules as response from an http requests
-func SendRules(w http.ResponseWriter, req *http.Request) {
-	var rules []Rule
-	err := Load("./config/rules.json", &rules)
+// SendApps send apps as response from an http requests
+func SendApps(w http.ResponseWriter, req *http.Request) {
+	var apps []App
+	err := Load("./config/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
-		json.NewEncoder(w).Encode(rules)
+		json.NewEncoder(w).Encode(apps)
 	}
 }
 
-// SetRules sets rules from an http request
-func SetRules(w http.ResponseWriter, req *http.Request) {
-	var rules []Rule
+// SetApps sets apps from an http request
+func SetApps(w http.ResponseWriter, req *http.Request) {
+	var apps []App
 	if req.Body == nil {
 		http.Error(w, "please send a request body", 400)
 		return
 	}
-	err := json.NewDecoder(req.Body).Decode(&rules)
+	err := json.NewDecoder(req.Body).Decode(&apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 	// Strip schemes from hosts
-	for key, val := range rules {
+	for key, val := range apps {
 		if strings.HasPrefix(val.Host, "http://") {
-			rules[key].Host = strings.TrimPrefix(val.Host, "http://")
+			apps[key].Host = strings.TrimPrefix(val.Host, "http://")
 		}
 		if strings.HasPrefix(val.Host, "https://") {
-			rules[key].Host = strings.TrimPrefix(val.Host, "https://")
+			apps[key].Host = strings.TrimPrefix(val.Host, "https://")
 		}
 	}
-	err = Save("./config/rules.json", &rules)
+	err = Save("./config/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	SendRules(w, req)
+	SendApps(w, req)
 }
 
 // Save saves a representation of v to the file at path.

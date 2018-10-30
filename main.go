@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"./appserver"
 	"./log"
-	"./proxy"
 	"./security"
 	"./types"
 	"./webdavaug"
@@ -36,20 +36,20 @@ func main() {
 	log.Logger.Println("Server is starting...")
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
-	// Create the proxy handler
-	proxyServer, err := proxy.NewServer("./config/rules.json", *port, *frameSource, *mainHostName)
+	// Create the app handler
+	appServer, err := appserver.NewServer("./config/apps.json", *port, *frameSource, *mainHostName)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
-	var proxyHandler http.Handler = proxyServer
+	var appHandler http.Handler = appServer
 
 	// Create the main handler
-	mainMux := createMainMux(proxyServer)
+	mainMux := createMainMux(appServer)
 
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
 	rootMux.Handle(*mainHostName+"/", webSecurityMiddleware(mainMux))
-	rootMux.Handle("/", proxyHandler)
+	rootMux.Handle("/", appHandler)
 
 	// Serve locally with https on debug mode or with let's encrypt on production mode
 	if *debugMode {
@@ -58,7 +58,7 @@ func main() {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			Cache:      autocert.DirCache(*letsCacheDir),
-			HostPolicy: proxyServer.HostPolicy,
+			HostPolicy: appServer.HostPolicy,
 		}
 
 		server := &http.Server{
@@ -75,7 +75,7 @@ func main() {
 
 }
 
-func createMainMux(proxyServer *proxy.Server) http.Handler {
+func createMainMux(appServer *appserver.Server) http.Handler {
 
 	mainMux := http.NewServeMux()
 	// Serve static files
@@ -107,16 +107,16 @@ func createMainMux(proxyServer *proxy.Server) http.Handler {
 		}
 		http.Error(w, "method not allowed", 405)
 	})
-	adminMux.HandleFunc("/proxys", func(w http.ResponseWriter, req *http.Request) {
+	adminMux.HandleFunc("/apps", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost {
-			types.SetRules(w, req)
-			if err := proxyServer.LoadRules("./config/rules.json"); err != nil {
-				http.Error(w, "error loading proxy rules", 400)
+			types.SetApps(w, req)
+			if err := appServer.LoadApps("./config/apps.json"); err != nil {
+				http.Error(w, "error loading apps", 400)
 			}
 			return
 		}
 		if req.Method == http.MethodGet {
-			types.SendRules(w, req)
+			types.SendApps(w, req)
 			return
 		}
 		http.Error(w, "method not allowed", 405)

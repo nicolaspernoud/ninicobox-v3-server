@@ -5,18 +5,18 @@ import (
 	"net/http"
 	"testing"
 
-	"./proxy"
+	"./appserver"
 	"./tester"
 )
 
 func Test_MainRouter(t *testing.T) {
-	proxyServer, _ := proxy.NewServer("./config/rules.json", 80, "localhost", "localhost")
-	router := createMainMux(proxyServer)
+	appServer, _ := appserver.NewServer("./config/apps.json", 80, "localhost", "localhost")
+	router := createMainMux(appServer)
 
 	initialUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	updatedUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
-	initialProxys := `[{"name":"Example 1","isProxy":true,"host":"www.myexample.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":""},{"name":"Example 2","isProxy":false,"host":"www.myexample2.com","forwardTo":"","serve":"./proxy/testdata","secured":false,"icon":"folder","rank":"2","iframed":false,"iframepath":"","login":"","password":""}]`
-	updatedProxysWithSchemes := `[{"name":"Example 1","isProxy":true,"host":"http://www.myexample.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":""},{"name":"Example 2","isProxy":false,"host":"https://www.myexample2.com","forwardTo":"","serve":"./proxy/testdata","secured":false,"icon":"folder","rank":"2","iframed":false,"iframepath":"","login":"","password":""}]`
+	initialApps := `[{"name":"Example 1","isProxy":true,"host":"www.myexample.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":""},{"name":"Example 2","isProxy":false,"host":"www.myexample2.com","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"2","iframed":false,"iframepath":"","login":"","password":""}]`
+	updatedAppsWithSchemes := `[{"name":"Example 1","isProxy":true,"host":"http://www.myexample.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":""},{"name":"Example 2","isProxy":false,"host":"https://www.myexample2.com","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"2","iframed":false,"iframepath":"","login":"","password":""}]`
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
@@ -38,10 +38,10 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "GET", "/api/admin/users", "", "", http.StatusUnauthorized, "no token found")
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", "", updatedUsers, http.StatusUnauthorized, "no token found")
-	// Try to get the proxys
-	tester.DoRequest(t, router, "GET", "/api/admin/proxys", "", "", http.StatusUnauthorized, "no token found")
-	// Try to update the proxys
-	tester.DoRequest(t, router, "POST", "/api/admin/proxys", "", updatedProxysWithSchemes, http.StatusUnauthorized, "no token found")
+	// Try to get the apps
+	tester.DoRequest(t, router, "GET", "/api/admin/apps", "", "", http.StatusUnauthorized, "no token found")
+	// Try to update the apps
+	tester.DoRequest(t, router, "POST", "/api/admin/apps", "", updatedAppsWithSchemes, http.StatusUnauthorized, "no token found")
 	// Try to read a webdav resource
 	tester.DoRequest(t, router, "GET", "/api/files/usersrw/File users 01.txt", "", "", http.StatusUnauthorized, "no token found")
 	// Try to create a webdav resource
@@ -69,10 +69,10 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "GET", "/api/admin/users", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", userHeader, updatedUsers, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
-	// Try to get the proxys
-	tester.DoRequest(t, router, "GET", "/api/admin/proxys", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
-	// Try to update the proxys
-	tester.DoRequest(t, router, "POST", "/api/admin/proxys", userHeader, updatedProxysWithSchemes, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
+	// Try to get the apps
+	tester.DoRequest(t, router, "GET", "/api/admin/apps", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
+	// Try to update the apps
+	tester.DoRequest(t, router, "POST", "/api/admin/apps", userHeader, updatedAppsWithSchemes, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to read a webdav resource
 	tester.DoRequest(t, router, "GET", "/api/files/usersrw/File users 01.txt", userHeader, "", http.StatusOK, "Lorem ipsum")
 	// Try to walk back the shared path
@@ -109,10 +109,10 @@ func Test_MainRouter(t *testing.T) {
 	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsersBlankPassword, http.StatusBadRequest, "passwords cannot be blank")
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsers, http.StatusOK, `[{"id":1,"login":"admin",`)
-	// Try to get the proxys
-	tester.DoRequest(t, router, "GET", "/api/admin/proxys", adminHeader, "", http.StatusOK, initialProxys)
-	// Try to update the proxys with schemes
-	tester.DoRequest(t, router, "POST", "/api/admin/proxys", adminHeader, updatedProxysWithSchemes, http.StatusOK, initialProxys)
+	// Try to get the apps
+	tester.DoRequest(t, router, "GET", "/api/admin/apps", adminHeader, "", http.StatusOK, initialApps)
+	// Try to update the apps with schemes
+	tester.DoRequest(t, router, "POST", "/api/admin/apps", adminHeader, updatedAppsWithSchemes, http.StatusOK, initialApps)
 	// Try to login with old password
 	tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusForbidden, `user not found`)
 	// Update the user to revert to old password

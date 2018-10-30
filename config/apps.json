@@ -18,7 +18,7 @@
 		"isProxy": false,
 		"host": "www.myexample2.com",
 		"forwardTo": "",
-		"serve": "./proxy/testdata",
+		"serve": "./appserver/testdata",
 		"secured": false,
 		"icon": "folder",
 		"rank": "2",
