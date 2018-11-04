@@ -1,8 +1,8 @@
 [
 	{
-		"name": "Example 1",
+		"name": "UnsecuredReverseProxy",
 		"isProxy": true,
-		"host": "www.myexample.com",
+		"host": "www.unsecuredreverseproxy.com",
 		"forwardTo": "www.example.com",
 		"serve": "",
 		"secured": false,
@@ -11,20 +11,57 @@
 		"iframed": true,
 		"iframepath": "/test",
 		"login": "",
-		"password": ""
+		"password": "",
+		"roles": []
 	},
 	{
-		"name": "Example 2",
+		"name": "SecuredProxy",
+		"isProxy": true,
+		"host": "www.securedreverseproxy.com",
+		"forwardTo": "www.example2.com",
+		"serve": "",
+		"secured": true,
+		"icon": "navigation",
+		"rank": "2",
+		"iframed": true,
+		"iframepath": "/test",
+		"login": "",
+		"password": "",
+		"roles": [
+			"admin",
+			"user"
+		]
+	},
+	{
+		"name": "AdminOnlyProxy",
+		"isProxy": true,
+		"host": "www.adminonlyproxy.com",
+		"forwardTo": "www.example3.com",
+		"serve": "",
+		"secured": true,
+		"icon": "navigation",
+		"rank": "3",
+		"iframed": true,
+		"iframepath": "/test",
+		"login": "",
+		"password": "",
+		"roles": [
+			"admin"
+		]
+	},
+	{
+		"name": "StaticServer",
 		"isProxy": false,
-		"host": "www.myexample2.com",
+		"host": "www.staticserver.com",
 		"forwardTo": "",
 		"serve": "./appserver/testdata",
 		"secured": false,
 		"icon": "folder",
-		"rank": "2",
+		"rank": "4",
 		"iframed": false,
 		"iframepath": "",
 		"login": "",
-		"password": ""
+		"password": "",
+		"roles": []
 	}
 ]

@@ -89,6 +89,13 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	commonMux := http.NewServeMux()
 	commonMux.HandleFunc("/filesacls", types.SendFilesACLs)
 	commonMux.HandleFunc("/getsharetoken", security.GetShareToken)
+	commonMux.HandleFunc("/apps", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodGet {
+			types.SendApps(w, req)
+			return
+		}
+		http.Error(w, "method not allowed", 405)
+	})
 	commonAuth := security.AuthenticationMiddleware{
 		AllowedRoles: []string{"all"},
 	}
@@ -113,10 +120,6 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 			if err := appServer.LoadApps("./config/apps.json"); err != nil {
 				http.Error(w, "error loading apps", 400)
 			}
-			return
-		}
-		if req.Method == http.MethodGet {
-			types.SendApps(w, req)
 			return
 		}
 		http.Error(w, "method not allowed", 405)

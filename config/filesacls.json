@@ -3,7 +3,7 @@
         "name": "Users Read Only",
         "path": "usersro",
         "directory": "./data/admins",
-        "roles" : ["user"],
+        "roles" : ["user", "guest"],
         "permissions": "r"
     },
     {

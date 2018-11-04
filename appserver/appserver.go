@@ -142,8 +142,9 @@ func parseApps(file string) ([]*app, error) {
 
 // makeHandler constructs the appropriate Handler for the given app.
 func makeHandler(r *app) http.Handler {
+	var handler http.Handler
 	if fwdTo := r.ForwardTo; r.IsProxy && fwdTo != "" {
-		reverseProxy := &httputil.ReverseProxy{
+		handler = &httputil.ReverseProxy{
 			Director: func(req *http.Request) {
 				// Set the correct scheme to the request
 				if !strings.HasPrefix(fwdTo, "http") {
@@ -173,13 +174,11 @@ func makeHandler(r *app) http.Handler {
 				return nil
 			},
 		}
-		if !r.Secured {
-			return reverseProxy
-		}
-		return security.ValidateJWTMiddleware(reverseProxy, []string{"admin"})
+	} else if d := r.Serve; !r.IsProxy && d != "" {
+		handler = http.FileServer(http.Dir(d))
 	}
-	if d := r.Serve; !r.IsProxy && d != "" {
-		return http.FileServer(http.Dir(d))
+	if !r.Secured || handler == nil {
+		return handler
 	}
-	return nil
+	return security.ValidateJWTMiddleware(handler, r.Roles)
 }

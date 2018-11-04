@@ -2,7 +2,10 @@ package main
 
 import (
 	"encoding/base64"
+	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strings"
 	"testing"
 
 	"./appserver"
@@ -15,8 +18,11 @@ func Test_MainRouter(t *testing.T) {
 
 	initialUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	updatedUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
-	initialApps := `[{"name":"Example 1","isProxy":true,"host":"www.myexample.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":""},{"name":"Example 2","isProxy":false,"host":"www.myexample2.com","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"2","iframed":false,"iframepath":"","login":"","password":""}]`
-	updatedAppsWithSchemes := `[{"name":"Example 1","isProxy":true,"host":"http://www.myexample.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":""},{"name":"Example 2","isProxy":false,"host":"https://www.myexample2.com","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"2","iframed":false,"iframepath":"","login":"","password":""}]`
+	initialAppsBuff, _ := ioutil.ReadFile("./config/apps.json")
+	initialApps := string(initialAppsBuff)
+	reg, _ := regexp.Compile("[\n \t]+")
+	initialApps = reg.ReplaceAllString(initialApps, "")
+	updatedAppsWithSchemes := strings.Replace(initialApps, "www.", "http://www.", 1)
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
@@ -39,7 +45,7 @@ func Test_MainRouter(t *testing.T) {
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", "", updatedUsers, http.StatusUnauthorized, "no token found")
 	// Try to get the apps
-	tester.DoRequest(t, router, "GET", "/api/admin/apps", "", "", http.StatusUnauthorized, "no token found")
+	tester.DoRequest(t, router, "GET", "/api/common/apps", "", "", http.StatusUnauthorized, "no token found")
 	// Try to update the apps
 	tester.DoRequest(t, router, "POST", "/api/admin/apps", "", updatedAppsWithSchemes, http.StatusUnauthorized, "no token found")
 	// Try to read a webdav resource
@@ -70,7 +76,7 @@ func Test_MainRouter(t *testing.T) {
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", userHeader, updatedUsers, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get the apps
-	tester.DoRequest(t, router, "GET", "/api/admin/apps", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
+	tester.DoRequest(t, router, "GET", "/api/common/apps", userHeader, "", http.StatusOK, initialApps)
 	// Try to update the apps
 	tester.DoRequest(t, router, "POST", "/api/admin/apps", userHeader, updatedAppsWithSchemes, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to read a webdav resource
@@ -110,7 +116,7 @@ func Test_MainRouter(t *testing.T) {
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", adminHeader, updatedUsers, http.StatusOK, `[{"id":1,"login":"admin",`)
 	// Try to get the apps
-	tester.DoRequest(t, router, "GET", "/api/admin/apps", adminHeader, "", http.StatusOK, initialApps)
+	tester.DoRequest(t, router, "GET", "/api/common/apps", adminHeader, "", http.StatusOK, initialApps)
 	// Try to update the apps with schemes
 	tester.DoRequest(t, router, "POST", "/api/admin/apps", adminHeader, updatedAppsWithSchemes, http.StatusOK, initialApps)
 	// Try to login with old password
