@@ -15,6 +15,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type key int
+
+const (
+	// ContextLogin is the connected user login from the request context
+	ContextLogin key = 0
+	// ContextRole is the connected user role from the request context
+	ContextRole key = 1
+)
+
 // Mutex used to lock file writing
 var lock sync.Mutex
 
@@ -116,6 +125,7 @@ type FilesACL struct {
 
 // SendFilesACLs send files acls as response from an http requests
 func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
+	role := req.Context().Value(ContextRole).(string)
 	if req.Method != http.MethodGet {
 		http.Error(w, "method not allowed", 405)
 		return
@@ -125,7 +135,16 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
-		json.NewEncoder(w).Encode(filesacls)
+		sentfilesacls := filesacls[:0]
+		for _, filesacl := range filesacls {
+			for _, allowedRole := range filesacl.Roles {
+				if role == allowedRole || allowedRole == "all" {
+					sentfilesacls = append(sentfilesacls, filesacl)
+					break
+				}
+			}
+		}
+		json.NewEncoder(w).Encode(sentfilesacls)
 	}
 }
 
@@ -201,11 +220,28 @@ type App struct {
 
 // SendApps send apps as response from an http requests
 func SendApps(w http.ResponseWriter, req *http.Request) {
+	role := req.Context().Value(ContextRole).(string)
 	var apps []App
 	err := Load("./config/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
+		if role != "admin" {
+			tmp := apps[:0]
+			for _, app := range apps {
+				allowed := false
+				for _, allowedRole := range app.Roles {
+					if role == allowedRole || allowedRole == "all" {
+						allowed = true
+						break
+					}
+				}
+				if !app.Secured || allowed {
+					tmp = append(tmp, app)
+				}
+			}
+			apps = tmp
+		}
 		json.NewEncoder(w).Encode(apps)
 	}
 }

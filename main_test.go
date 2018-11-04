@@ -23,6 +23,7 @@ func Test_MainRouter(t *testing.T) {
 	reg, _ := regexp.Compile("[\n \t]+")
 	initialApps = reg.ReplaceAllString(initialApps, "")
 	updatedAppsWithSchemes := strings.Replace(initialApps, "www.", "http://www.", 1)
+	filteredApps := `[{"name":"UnsecuredReverseProxy","isProxy":true,"host":"www.unsecuredreverseproxy.com","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":"","roles":[]},{"name":"SecuredProxy","isProxy":true,"host":"www.securedreverseproxy.com","forwardTo":"www.example2.com","serve":"","secured":true,"icon":"navigation","rank":"2","iframed":true,"iframepath":"/test","login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","isProxy":false,"host":"www.staticserver.com","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"4","iframed":false,"iframepath":"","login":"","password":"","roles":[]}]`
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
@@ -70,13 +71,13 @@ func Test_MainRouter(t *testing.T) {
 	// Try to post the files access control lists (should fail)
 	tester.DoRequest(t, router, "POST", "/api/common/filesacls", userHeader, "", http.StatusMethodNotAllowed, "method not allowed")
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/filesacls", userHeader, "", http.StatusOK, `[{"name":"Users Read Only"`)
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", userHeader, "", http.StatusOK, `[{"name":"Users Read Only","path":"usersro","directory":"./data/admins","roles":["user","guest"],"permissions":"r","basicauth":false},{"name":"Users Read Write","path":"usersrw","directory":"./data/users","roles":["user","admin"],"permissions":"rw","basicauth":false}]`)
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to update the users
 	tester.DoRequest(t, router, "POST", "/api/admin/users", userHeader, updatedUsers, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get the apps
-	tester.DoRequest(t, router, "GET", "/api/common/apps", userHeader, "", http.StatusOK, initialApps)
+	tester.DoRequest(t, router, "GET", "/api/common/apps", userHeader, "", http.StatusOK, filteredApps)
 	// Try to update the apps
 	tester.DoRequest(t, router, "POST", "/api/admin/apps", userHeader, updatedAppsWithSchemes, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to read a webdav resource
@@ -108,7 +109,7 @@ func Test_MainRouter(t *testing.T) {
 	adminHeader := "Bearer " + tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got admin auth header: %v", adminHeader)
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/filesacls", adminHeader, "", http.StatusOK, `[{"name":"Users Read Only"`)
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", adminHeader, "", http.StatusOK, `[{"name":"Users Read Write","path":"usersrw","directory":"./data/users","roles":["user","admin"],"permissions":"rw","basicauth":false},{"name":"Admins Read Write","path":"adminsrw","directory":"./data/admins","roles":["admin"],"permissions":"rw","basicauth":false},{"name":"Basic Auth","path":"basicauth","directory":"./data/admins","roles":["admin"],"permissions":"rw","basicauth":true}]`)
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", adminHeader, "", http.StatusOK, initialUsers)
 	// Try to update the users with a blank password

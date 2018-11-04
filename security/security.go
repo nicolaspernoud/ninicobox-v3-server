@@ -18,13 +18,6 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-type key int
-
-const (
-	contextLogin key = 0
-	contextRole  key = 1
-)
-
 var (
 	jWTSignature []byte
 )
@@ -82,8 +75,8 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 		}
 
 		if err := checkUserRoleIsAllowed(user.Role, allowedRoles); err == nil {
-			ctx := context.WithValue(req.Context(), contextLogin, user.Login)
-			ctx = context.WithValue(ctx, contextRole, user.Role)
+			ctx := context.WithValue(req.Context(), types.ContextLogin, user.Login)
+			ctx = context.WithValue(ctx, types.ContextRole, user.Role)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		} else {
 			http.Error(w, err.Error(), 403)
@@ -128,8 +121,8 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				return
 			}
 			if err := checkUserRoleIsAllowed(claims.Role, allowedRoles); err == nil {
-				ctx := context.WithValue(req.Context(), contextLogin, claims.Login)
-				ctx = context.WithValue(ctx, contextRole, claims.Role)
+				ctx := context.WithValue(req.Context(), types.ContextLogin, claims.Login)
+				ctx = context.WithValue(ctx, types.ContextRole, claims.Role)
 				// if the JWT origin is a query set the token as cookie in the response
 				if origin == "query" {
 					w.Header().Set("Set-Cookie", "jwt_token="+JWT+"; Path=/; Expires="+time.Unix(claims.ExpiresAt, 0).Format(time.RFC1123))
@@ -200,9 +193,9 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 	}
 	shareTokenUser := types.User{
 		Login:            "share",
-		Role:             req.Context().Value(contextRole).(string),
+		Role:             req.Context().Value(types.ContextRole).(string),
 		Path:             path,
-		SharingUserLogin: req.Context().Value(contextLogin).(string),
+		SharingUserLogin: req.Context().Value(types.ContextLogin).(string),
 	}
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
@@ -272,7 +265,7 @@ func randomByteArray(length int) []byte {
 
 // UserLoginFromContext retrieve user login from request context
 func UserLoginFromContext(ctx context.Context) string {
-	user, ok := ctx.Value(contextLogin).(string)
+	user, ok := ctx.Value(types.ContextLogin).(string)
 	if ok {
 		return user
 	}
