@@ -138,7 +138,7 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 		sentfilesacls := filesacls[:0]
 		for _, filesacl := range filesacls {
 			for _, allowedRole := range filesacl.Roles {
-				if role == allowedRole || allowedRole == "all" {
+				if !filesacl.BasicAuth && (role == allowedRole || allowedRole == "all") {
 					sentfilesacls = append(sentfilesacls, filesacl)
 					break
 				}
@@ -195,7 +195,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.0.8",
+		ServerVersion: "3.0.9",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
