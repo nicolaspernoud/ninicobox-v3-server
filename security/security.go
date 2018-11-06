@@ -215,7 +215,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 
 func checkUserRoleIsAllowed(userRole string, allowedRoles []string) error {
 	for _, allowedRole := range allowedRoles {
-		if userRole == allowedRole || allowedRole == "all" {
+		if userRole != "" && (userRole == allowedRole || allowedRole == "all") {
 			return nil
 		}
 	}
