@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
@@ -195,7 +197,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.0.10",
+		ServerVersion: "3.0.11",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
@@ -316,4 +318,15 @@ var Marshal = func(v interface{}) (io.Reader, error) {
 // Unmarshal is a function that unmarshals the data from the reader into the specified value. By default, it uses the JSON unmarshaller.
 var Unmarshal = func(r io.Reader, v interface{}) error {
 	return json.NewDecoder(r).Decode(v)
+}
+
+// RandomByteArray generates a byte array of length "length" with random characters taken from letterBytes
+func RandomByteArray(length int) []byte {
+	rand.Seed(time.Now().UnixNano())
+	letterBytes := "123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return b
 }

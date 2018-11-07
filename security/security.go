@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -29,7 +28,7 @@ func init() {
 	}
 	err := types.Load("./config/jwtsignature.json", &jWTConfig)
 	if err != nil {
-		jWTSignature = randomByteArray(48)
+		jWTSignature = types.RandomByteArray(48)
 		jWTConfig.JWTSignature = string(jWTSignature)
 		err := types.Save("./config/jwtsignature.json", jWTConfig)
 		if err != nil {
@@ -251,16 +250,6 @@ func ExtractToken(r *http.Request) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("no token found")
-}
-
-func randomByteArray(length int) []byte {
-	rand.Seed(time.Now().UnixNano())
-	letterBytes := "123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return b
 }
 
 // UserLoginFromContext retrieve user login from request context
