@@ -12,7 +12,7 @@ import (
 	"./tester"
 )
 
-func Test_MainRouter(t *testing.T) {
+func TestMainRouter(t *testing.T) {
 	appServer, _ := appserver.NewServer("./config/apps.json", 80, "localhost", "localhost")
 	router := createMainMux(appServer)
 

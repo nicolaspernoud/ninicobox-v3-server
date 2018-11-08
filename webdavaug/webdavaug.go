@@ -126,10 +126,10 @@ func (zh *zipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		upath = "/" + upath
 		r.URL.Path = upath
 	}
-	zipAndServe(w, r, zh.root, path.Clean(upath))
+	zipAndServe(w, zh.root, path.Clean(upath))
 }
 
-func zipAndServe(w http.ResponseWriter, r *http.Request, root string, name string) {
+func zipAndServe(w http.ResponseWriter, root string, name string) {
 
 	source := filepath.Join(root, filepath.FromSlash(path.Clean("/"+name)))
 
