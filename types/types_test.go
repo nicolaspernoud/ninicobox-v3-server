@@ -18,6 +18,7 @@ func TestMatchUser(t *testing.T) {
 
 	existingUser := User{ID: 2, Login: "user", Name: "Us", Surname: "ER", Role: "user", PasswordHash: "$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}
 	veryLongString := string(RandomByteArray(10000))
+	specialCharString := "\""
 
 	type args struct {
 		sentUser User
@@ -38,6 +39,9 @@ func TestMatchUser(t *testing.T) {
 		{"very_long_string_as_user", args{User{Login: veryLongString, Password: "password"}}, User{}, true},
 		{"very_long_string_as_password", args{User{Login: "user", Password: veryLongString}}, User{}, true},
 		{"very_long_string_as_user_and_password", args{User{Login: veryLongString, Password: veryLongString}}, User{}, true},
+		{"special_char_string_as_user", args{User{Login: specialCharString, Password: "password"}}, User{}, true},
+		{"special_char_string_as_password", args{User{Login: "user", Password: specialCharString}}, User{}, true},
+		{"special_char_string_as_user_and_password", args{User{Login: specialCharString, Password: specialCharString}}, User{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

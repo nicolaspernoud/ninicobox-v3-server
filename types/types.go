@@ -197,7 +197,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.0.12",
+		ServerVersion: "3.0.13",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
