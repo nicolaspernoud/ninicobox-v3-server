@@ -1,6 +1,14 @@
 package security
 
-import "testing"
+import (
+	"io/ioutil"
+	"net/http"
+	"os"
+	"testing"
+	"time"
+
+	"../tester"
+)
 
 func Test_checkUserRoleIsAllowed(t *testing.T) {
 	type args struct {
@@ -28,4 +36,37 @@ func Test_checkUserRoleIsAllowed(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestJWTAuthAndMiddleware(t *testing.T) {
+
+	// Create config directory (errors are not handled, since is testing)
+	os.MkdirAll("config", os.ModePerm)
+	// Copy config file from parent directory (errors are not handled, since is testing)
+	input, _ := ioutil.ReadFile("../config/users.json")
+	ioutil.WriteFile("./config/users.json", input, os.ModePerm)
+	// Delete config directory after completion (errors are not handled, since is testing)
+	defer os.RemoveAll("config")
+
+	// Get old JWTs
+	now = func() time.Time { return time.Now().Add(time.Hour * time.Duration(-24*8)) }
+	veryOldAdminHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
+	now = func() time.Time { return time.Now().Add(time.Hour * time.Duration(-24*6)) }
+	oldUserHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
+	oldAdminHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
+	// Get JWTs
+	now = time.Now
+	userHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
+	adminHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
+	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
+
+	handler := ValidateJWTMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("OK"))
+	}), []string{"admin", "user"})
+	tester.DoRequest(t, handler, "GET", "/", veryOldAdminHeader, ``, http.StatusForbidden, `token is expired`)
+	tester.DoRequest(t, handler, "GET", "/", oldUserHeader, ``, http.StatusForbidden, `token is expired`)
+	tester.DoRequest(t, handler, "GET", "/", oldAdminHeader, ``, http.StatusOK, `OK`)
+	tester.DoRequest(t, handler, "GET", "/", userHeader, ``, http.StatusOK, `OK`)
+	tester.DoRequest(t, handler, "GET", "/", adminHeader, ``, http.StatusOK, `OK`)
+	tester.DoRequest(t, handler, "GET", "/", wrongAuthHeader, ``, http.StatusForbidden, `signature is invalid`)
 }

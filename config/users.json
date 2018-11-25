@@ -5,7 +5,8 @@
 		"name": "Ad",
 		"surname": "MIN",
 		"role": "admin",
-		"passwordHash": "$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu"
+		"passwordHash": "$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu",
+		"longLivedToken": true
 	},
 	{
 		"id": 2,
@@ -13,6 +14,7 @@
 		"name": "Us",
 		"surname": "ER",
 		"role": "user",
-		"passwordHash": "$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"
+		"passwordHash": "$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26",
+		"longLivedToken": false
 	}
 ]

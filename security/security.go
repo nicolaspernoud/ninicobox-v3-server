@@ -19,6 +19,7 @@ import (
 
 var (
 	jWTSignature []byte
+	now          = time.Now
 )
 
 // init sets the jWTSignature
@@ -157,12 +158,19 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	}
 	// Remove the password hash from sent user
 	user.PasswordHash = ""
+	// Work out the time to live for the token
+	var timeToLive int64
+	if user.LongLivedToken {
+		timeToLive = now().Add(time.Hour * time.Duration(24*7)).Unix()
+	} else {
+		timeToLive = now().Add(time.Hour * time.Duration(12)).Unix()
+	}
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
 		User: user,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * time.Duration(24)).Unix(),
-			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: timeToLive,
+			IssuedAt:  now().Unix(),
 		},
 	})
 	tokenString, err := token.SignedString(jWTSignature)
@@ -200,8 +208,8 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
 		User: shareTokenUser,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * time.Duration(24*7)).Unix(),
-			IssuedAt:  time.Now().Unix(),
+			ExpiresAt: now().Add(time.Hour * time.Duration(24*7)).Unix(),
+			IssuedAt:  now().Unix(),
 		},
 	})
 	tokenString, err := token.SignedString(jWTSignature)

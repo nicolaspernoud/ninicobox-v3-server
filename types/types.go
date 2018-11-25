@@ -44,6 +44,7 @@ type User struct {
 	Role             string `json:"role"`
 	PasswordHash     string `json:"passwordHash"`
 	Password         string `json:"password,omitempty"`
+	LongLivedToken   bool   `json:"longLivedToken"`
 	Path             string `json:"path,omitempty"`             // For share token
 	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
 }
@@ -197,7 +198,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.0.13",
+		ServerVersion: "3.0.14",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
