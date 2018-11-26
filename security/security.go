@@ -156,20 +156,21 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		log.Logger.Printf("| %v | Login failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
 		return
 	}
-	// Remove the password hash from sent user
-	user.PasswordHash = ""
 	// Work out the time to live for the token
-	var timeToLive int64
+	var expiresAt int64
 	if user.LongLivedToken {
-		timeToLive = now().Add(time.Hour * time.Duration(24*7)).Unix()
+		expiresAt = now().Add(time.Hour * time.Duration(24*7)).Unix()
 	} else {
-		timeToLive = now().Add(time.Hour * time.Duration(12)).Unix()
+		expiresAt = now().Add(time.Hour * time.Duration(12)).Unix()
 	}
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
-		User: user,
+		Login:   user.Login,
+		Name:    user.Name,
+		Surname: user.Surname,
+		Role:    user.Role,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: timeToLive,
+			ExpiresAt: expiresAt,
 			IssuedAt:  now().Unix(),
 		},
 	})
@@ -198,15 +199,12 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "path cannot be empty, and must began with /api/files", 400)
 		return
 	}
-	shareTokenUser := types.User{
+	// If user is found, create and send a JWT
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
 		Login:            "share",
 		Role:             req.Context().Value(types.ContextRole).(string),
 		Path:             path,
 		SharingUserLogin: req.Context().Value(types.ContextLogin).(string),
-	}
-	// If user is found, create and send a JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
-		User: shareTokenUser,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: now().Add(time.Hour * time.Duration(24*7)).Unix(),
 			IssuedAt:  now().Unix(),

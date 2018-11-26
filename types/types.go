@@ -31,22 +31,25 @@ var lock sync.Mutex
 
 // JWTPayload represents the payload of a JWT
 type JWTPayload struct {
-	User
+	Login            string `json:"login"`
+	Name             string `json:"name,omitempty"`
+	Surname          string `json:"surname,omitempty"`
+	Role             string `json:"role"`
+	Path             string `json:"path,omitempty"`             // For share token
+	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
 	jwt.StandardClaims
 }
 
 // User represents an application user
 type User struct {
-	ID               int    `json:"id"`
-	Login            string `json:"login"`
-	Name             string `json:"name"`
-	Surname          string `json:"surname"`
-	Role             string `json:"role"`
-	PasswordHash     string `json:"passwordHash"`
-	Password         string `json:"password,omitempty"`
-	LongLivedToken   bool   `json:"longLivedToken"`
-	Path             string `json:"path,omitempty"`             // For share token
-	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
+	ID             int    `json:"id"`
+	Login          string `json:"login"`
+	Name           string `json:"name"`
+	Surname        string `json:"surname"`
+	Role           string `json:"role"`
+	PasswordHash   string `json:"passwordHash"`
+	Password       string `json:"password,omitempty"`
+	LongLivedToken bool   `json:"longLivedToken"`
 }
 
 // SendUsers send users as response from an http requests
@@ -198,7 +201,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.0.14",
+		ServerVersion: "3.0.15",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
