@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"../log"
@@ -136,20 +137,30 @@ func zipAndServe(w http.ResponseWriter, root string, name string) {
 	archive := zip.NewWriter(w)
 	defer archive.Close()
 
-	info, err := os.Stat(source)
+	size, err := maxZipSize(source)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	var baseDir string
-	if info.IsDir() {
-		baseDir = filepath.Base(source)
-	}
+	w.Header().Set("content-length", strconv.FormatInt(size, 10))
+
+	var rootPath string
 
 	err = filepath.Walk(source, func(path string, info os.FileInfo, err error) error {
+
+		// On root call, set filename and rootPath
+		if rootPath == "" {
+			rootPath = path
+			w.Header().Set("Content-Disposition", "attachment; filename="+info.Name()+".zip")
+		}
+
 		if err != nil {
 			return err
+		}
+
+		if info.IsDir() {
+			return nil
 		}
 
 		header, err := zip.FileInfoHeader(info)
@@ -157,23 +168,15 @@ func zipAndServe(w http.ResponseWriter, root string, name string) {
 			return err
 		}
 
-		if baseDir != "" {
-			header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+		header.Name, err = filepath.Rel(rootPath, path)
+		if err != nil {
+			return err
 		}
-
-		if info.IsDir() {
-			header.Name += "/"
-		} else {
-			header.Method = zip.Deflate
-		}
+		header.Method = zip.Deflate
 
 		writer, err := archive.CreateHeader(header)
 		if err != nil {
 			return err
-		}
-
-		if info.IsDir() {
-			return nil
 		}
 
 		file, err := os.Open(path)
@@ -187,4 +190,18 @@ func zipAndServe(w http.ResponseWriter, root string, name string) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+}
+
+func maxZipSize(path string) (int64, error) {
+	var size int64
+	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			size += info.Size() + 262144 // Allow 256 kB for zip files overhead (headers, etc.)
+		}
+		return err
+	})
+	return size, err
 }
