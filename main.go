@@ -80,7 +80,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	mainMux := http.NewServeMux()
 	// Serve static files
 	fs := http.FileServer(http.Dir("client"))
-	mainMux.Handle("/dist/", fs)
+	mainMux.Handle("/static/", http.StripPrefix("/static/", fs))
 	// Create login unsecured routes
 	mainMux.HandleFunc("/api/login", security.Authenticate)
 	mainMux.HandleFunc("/api/infos", types.SendInfos)
