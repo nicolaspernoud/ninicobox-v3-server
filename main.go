@@ -80,7 +80,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	mainMux := http.NewServeMux()
 	// Serve static files
 	fs := http.FileServer(http.Dir("client"))
-	mainMux.Handle("/", fs)
+	mainMux.Handle("/static/", http.StripPrefix("/static/", fs))
 	// Create login unsecured routes
 	mainMux.HandleFunc("/api/login", security.Authenticate)
 	mainMux.HandleFunc("/api/infos", types.SendInfos)
@@ -139,6 +139,12 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 			mainMux.Handle(webdavPath, webdavHandler)
 		}
 	}
+
+	// Create default route serving index.html
+	mainMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./client/index.html")
+	})
+
 	return mainMux
 }
 

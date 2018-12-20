@@ -134,9 +134,6 @@ func zipAndServe(w http.ResponseWriter, root string, name string) {
 
 	source := filepath.Join(root, filepath.FromSlash(path.Clean("/"+name)))
 
-	archive := zip.NewWriter(w)
-	defer archive.Close()
-
 	size, err := maxZipSize(source)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -144,6 +141,9 @@ func zipAndServe(w http.ResponseWriter, root string, name string) {
 	}
 
 	w.Header().Set("content-length", strconv.FormatInt(size, 10))
+
+	archive := zip.NewWriter(w)
+	defer archive.Close()
 
 	var rootPath string
 
