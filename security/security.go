@@ -121,7 +121,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				return
 			}
 			if err := checkUserRoleIsAllowed(claims.Role, allowedRoles); err == nil {
-				ctx := context.WithValue(req.Context(), types.ContextLogin, claims.Login)
+				ctx := context.WithValue(req.Context(), types.ContextLogin, claims.SharingUserLogin+claims.Login)
 				ctx = context.WithValue(ctx, types.ContextRole, claims.Role)
 				// if the JWT origin is a query set the token as cookie in the response
 				if origin == "query" {
@@ -201,7 +201,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 	}
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
-		Login:            "share",
+		Login:            "_share",
 		Role:             req.Context().Value(types.ContextRole).(string),
 		Path:             path,
 		SharingUserLogin: req.Context().Value(types.ContextLogin).(string),

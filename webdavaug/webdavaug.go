@@ -127,6 +127,7 @@ func (zh *zipHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		upath = "/" + upath
 		r.URL.Path = upath
 	}
+	webdavLogger(r, nil)
 	zipAndServe(w, zh.root, path.Clean(upath))
 }
 
