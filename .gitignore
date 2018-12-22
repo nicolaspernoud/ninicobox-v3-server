@@ -14,3 +14,5 @@ debug
 
 # Specific to the project
 config/jwtsignature.json
+!client/package.json
+/client

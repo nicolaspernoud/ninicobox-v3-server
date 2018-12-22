@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"path"
 	"strconv"
 
 	"./appserver"
@@ -78,9 +80,7 @@ func main() {
 func createMainMux(appServer *appserver.Server) http.Handler {
 
 	mainMux := http.NewServeMux()
-	// Serve static files
-	fs := http.FileServer(http.Dir("client"))
-	mainMux.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	// Create login unsecured routes
 	mainMux.HandleFunc("/api/login", security.Authenticate)
 	mainMux.HandleFunc("/api/infos", types.SendInfos)
@@ -140,12 +140,24 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 		}
 	}
 
-	// Create default route serving index.html
-	mainMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./client/index.html")
-	})
+	// Serve static files falling back to serving index.html
+	mainMux.Handle("/", http.FileServer(&fallBackWrapper{http.Dir("client")}))
 
 	return mainMux
+}
+
+type fallBackWrapper struct {
+	assets http.FileSystem
+}
+
+func (i *fallBackWrapper) Open(name string) (http.File, error) {
+	file, err := i.assets.Open(name)
+	// If the file is found but there is another error or the asked for file has an extension : return the file or error
+	if !os.IsNotExist(err) || path.Ext(name) != "" {
+		return file, err
+	}
+	// Else fall back to index.html
+	return i.assets.Open("index.html")
 }
 
 func logMiddleware(next http.Handler) http.Handler {
