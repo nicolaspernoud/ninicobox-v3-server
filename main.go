@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"./appserver"
 	"./log"
@@ -69,6 +70,9 @@ func main() {
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
 			},
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  120 * time.Second,
 		}
 
 		go http.ListenAndServe(":80", certManager.HTTPHandler(nil))
