@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"../du"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -24,6 +25,7 @@ const (
 	ContextLogin key = 0
 	// ContextRole is the connected user role from the request context
 	ContextRole key = 1
+	gB              = 1 << (10 * 3)
 )
 
 // Mutex used to lock file writing
@@ -127,6 +129,8 @@ type FilesACL struct {
 	Roles       []string `json:"roles"`
 	Permissions string   `json:"permissions"`
 	BasicAuth   bool     `json:"basicauth"`
+	UsedGB      uint64   `json:"usedgb"`
+	TotalGB     uint64   `json:"totalgb"`
 }
 
 // SendFilesACLs send files acls as response from an http requests
@@ -145,6 +149,9 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 		for _, filesacl := range filesacls {
 			for _, allowedRole := range filesacl.Roles {
 				if !filesacl.BasicAuth && (role == allowedRole || allowedRole == "all") {
+					usage := du.NewDiskUsage(filesacl.Directory)
+					filesacl.UsedGB = usage.Used() / gB
+					filesacl.TotalGB = usage.Size() / gB
 					sentfilesacls = append(sentfilesacls, filesacl)
 					break
 				}
@@ -201,7 +208,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.0.21",
+		ServerVersion: "3.1.0",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil

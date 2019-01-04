@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -166,9 +168,18 @@ func (i *fallBackWrapper) Open(name string) (http.File, error) {
 
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			log.Logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
-		}()
+		readBody, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Logger.Print("Body error : ", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		newBody := ioutil.NopCloser(bytes.NewBuffer(readBody))
+		r.Body = newBody
+		log.Logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
+		if string(readBody) != "" {
+			log.Logger.Printf("BODY : %q", readBody)
+		}
 		next.ServeHTTP(w, r)
 	})
 }

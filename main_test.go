@@ -71,7 +71,7 @@ func TestMainRouter(t *testing.T) {
 	// Try to post the files access control lists (should fail)
 	tester.DoRequest(t, router, "POST", "/api/common/filesacls", userHeader, "", http.StatusMethodNotAllowed, "method not allowed")
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/filesacls", userHeader, "", http.StatusOK, `[{"name":"Users Read Only","path":"usersro","directory":"./data/admins","roles":["user","guest"],"permissions":"r","basicauth":false},{"name":"Users Read Write","path":"usersrw","directory":"./data/users","roles":["user","admin"],"permissions":"rw","basicauth":false}]`)
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", userHeader, "", http.StatusOK, `[{"name":"Users Read Only","path":"usersro","directory":"./data/admins","roles":["user","guest"],"permissions":"r","basicauth":false`)
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to update the users
@@ -109,7 +109,7 @@ func TestMainRouter(t *testing.T) {
 	adminHeader := "Bearer " + tester.DoRequest(t, router, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got admin auth header: %v", adminHeader)
 	// Try to get the files access control lists
-	tester.DoRequest(t, router, "GET", "/api/common/filesacls", adminHeader, "", http.StatusOK, `[{"name":"Users Read Write","path":"usersrw","directory":"./data/users","roles":["user","admin"],"permissions":"rw","basicauth":false},{"name":"Admins Read Write","path":"adminsrw","directory":"./data/admins","roles":["admin"],"permissions":"rw","basicauth":false}]`)
+	tester.DoRequest(t, router, "GET", "/api/common/filesacls", adminHeader, "", http.StatusOK, `[{"name":"Users Read Write","path":"usersrw","directory":"./data/users","roles":["user","admin"],"permissions":"rw","basicauth":false`)
 	// Try to get the users
 	tester.DoRequest(t, router, "GET", "/api/admin/users", adminHeader, "", http.StatusOK, initialUsers)
 	// Try to update the users with a blank password
