@@ -72,8 +72,8 @@ func main() {
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
 			},
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 10 * time.Second,
+			ReadTimeout:  30 * time.Minute, // in case of upload
+			WriteTimeout: 5 * time.Hour,    // in case of download
 			IdleTimeout:  120 * time.Second,
 		}
 
