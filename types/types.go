@@ -208,7 +208,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.2",
+		ServerVersion: "3.1.3",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
@@ -273,11 +273,11 @@ func SetApps(w http.ResponseWriter, req *http.Request) {
 	}
 	// Strip schemes from hosts
 	for key, val := range apps {
-		if strings.HasPrefix(val.ForwardTo, "http://") {
-			apps[key].ForwardTo = strings.TrimPrefix(val.ForwardTo, "http://")
+		if strings.HasPrefix(val.Host, "http://") {
+			apps[key].Host = strings.TrimPrefix(val.Host, "http://")
 		}
-		if strings.HasPrefix(val.ForwardTo, "https://") {
-			apps[key].ForwardTo = strings.TrimPrefix(val.ForwardTo, "https://")
+		if strings.HasPrefix(val.Host, "https://") {
+			apps[key].Host = strings.TrimPrefix(val.Host, "https://")
 		}
 	}
 	err = Save("./config/apps.json", &apps)

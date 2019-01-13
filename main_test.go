@@ -22,7 +22,7 @@ func TestMainRouter(t *testing.T) {
 	initialApps := string(initialAppsBuff)
 	reg, _ := regexp.Compile("[\n \t]+")
 	initialApps = reg.ReplaceAllString(initialApps, "")
-	updatedAppsWithSchemes := strings.Replace(initialApps, "www.", "http://www.", 1)
+	updatedAppsWithSchemes := strings.Replace(initialApps, "unsecuredreverseproxy.", "http://unsecuredreverseproxy.", 1)
 	filteredApps := `[{"name":"UnsecuredReverseProxy","isProxy":true,"host":"unsecuredreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":"","roles":[]},{"name":"SecuredProxy","isProxy":true,"host":"securedreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":true,"icon":"navigation","rank":"2","iframed":true,"iframepath":"/test","login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","isProxy":false,"host":"staticserver.127.0.0.1.nip.io","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"4","iframed":false,"iframepath":"","login":"","password":"","roles":[]}]`
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
