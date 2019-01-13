@@ -158,6 +158,16 @@ func makeHandler(r *app) http.Handler {
 				if r.Login != "" && r.Password != "" {
 					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
 				}
+				req.Host = fwdTo
+				// Remove all jwt tokens from forwarded request
+				q := req.URL.Query()
+				q.Del("token")
+				req.URL.RawQuery = q.Encode()
+				req.AddCookie(&http.Cookie{
+					Name:   "jwt_token",
+					Value:  "na",
+					MaxAge: -1,
+				})
 			},
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location

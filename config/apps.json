@@ -2,7 +2,7 @@
 	{
 		"name": "UnsecuredReverseProxy",
 		"isProxy": true,
-		"host": "www.unsecuredreverseproxy.com",
+		"host": "unsecuredreverseproxy.127.0.0.1.nip.io",
 		"forwardTo": "www.example.com",
 		"serve": "",
 		"secured": false,
@@ -17,8 +17,8 @@
 	{
 		"name": "SecuredProxy",
 		"isProxy": true,
-		"host": "www.securedreverseproxy.com",
-		"forwardTo": "www.example2.com",
+		"host": "securedreverseproxy.127.0.0.1.nip.io",
+		"forwardTo": "www.example.com",
 		"serve": "",
 		"secured": true,
 		"icon": "navigation",
@@ -35,8 +35,8 @@
 	{
 		"name": "AdminOnlyProxy",
 		"isProxy": true,
-		"host": "www.adminonlyproxy.com",
-		"forwardTo": "www.example3.com",
+		"host": "adminonlyproxy.127.0.0.1.nip.io",
+		"forwardTo": "www.example.com",
 		"serve": "",
 		"secured": true,
 		"icon": "navigation",
