@@ -52,7 +52,7 @@
 	{
 		"name": "StaticServer",
 		"isProxy": false,
-		"host": "www.staticserver.com",
+		"host": "staticserver.127.0.0.1.nip.io",
 		"forwardTo": "",
 		"serve": "./appserver/testdata",
 		"secured": false,

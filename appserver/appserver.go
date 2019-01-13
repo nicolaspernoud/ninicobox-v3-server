@@ -161,20 +161,27 @@ func makeHandler(r *app) http.Handler {
 				req.Host = fwdTo
 				// Remove all jwt tokens from forwarded request
 				q := req.URL.Query()
-				q.Del("token")
+				q.Del("token") // Delete from query
 				req.URL.RawQuery = q.Encode()
-				req.AddCookie(&http.Cookie{
-					Name:   "jwt_token",
-					Value:  "na",
-					MaxAge: -1,
-				})
+				var JWTCookie string
+				for _, b := range req.Cookies() {
+					if b.Name == "jwt_token" {
+						JWTCookie = b.Value
+						break
+					}
+				}
+				if JWTCookie != "" {
+					req.Header.Set("Cookie", strings.Replace(req.Header.Get("Cookie"), "jwt_token="+JWTCookie, "", 1)) // Delete from Cookie
+				}
 			},
 			ModifyResponse: func(res *http.Response) error {
 				// Alter the redirect location
 				u, err := res.Location()
 				if err == nil {
 					u.Scheme = "https"
-					if !strings.HasSuffix(u.Host, r.Host) {
+					if strings.HasSuffix(u.Host, r.ForwardTo) { // Then the redirect is global
+						u.Host = strings.Replace(u.Host, r.ForwardTo, r.Host, 1)
+					} else { // Or is local
 						u.Host = r.Host + ":" + strconv.Itoa(port)
 					}
 					res.Header.Set("Location", u.String())
