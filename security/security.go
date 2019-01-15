@@ -116,7 +116,10 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				http.Error(w, err.Error(), 400)
 			}
 			urlHost := url.Hostname()
-			requestHost, _, _ := net.SplitHostPort(req.Host)
+			requestHost, _, err := net.SplitHostPort(req.Host)
+			if err != nil {
+				requestHost = req.Host
+			}
 			if hostNotMatched := urlHost != "" && urlHost != requestHost; hostNotMatched {
 				http.Error(w, "the share token can only be used for the given host", 403)
 				return
