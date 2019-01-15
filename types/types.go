@@ -37,7 +37,7 @@ type JWTPayload struct {
 	Name             string `json:"name,omitempty"`
 	Surname          string `json:"surname,omitempty"`
 	Role             string `json:"role"`
-	Path             string `json:"path,omitempty"`             // For share token
+	URL              string `json:"url,omitempty"`              // For share token
 	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
 	jwt.StandardClaims
 }
@@ -208,7 +208,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.3",
+		ServerVersion: "3.1.4",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil

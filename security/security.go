@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -111,12 +112,18 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			return
 		}
 		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
-			urlPath, err := url.Parse(claims.Path)
+			url, err := url.Parse("http://" + claims.URL)
 			if err != nil {
 				http.Error(w, err.Error(), 400)
 			}
-			urlEncodedPath := urlPath.String()
-			if pathNotMatched := urlEncodedPath != "" && urlEncodedPath != req.URL.EscapedPath(); pathNotMatched {
+			urlHost := url.Hostname()
+			requestHost, _, _ := net.SplitHostPort(req.Host)
+			if hostNotMatched := urlHost != "" && urlHost != requestHost; hostNotMatched {
+				http.Error(w, "the share token can only be used for the given host", 403)
+				return
+			}
+			urlPath := url.Path
+			if pathNotMatched := urlPath != "" && urlPath != req.URL.Path; pathNotMatched {
 				http.Error(w, "the share token can only be used for the given path", 403)
 				return
 			}
@@ -183,7 +190,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 	log.Logger.Printf("| %v (%v %v) | Login success | %v | %v", sentUser.Login, user.Name, user.Surname, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
 }
 
-// GetShareToken provide a token to access the ressource on a given path
+// GetShareToken provide a token to access the ressource on a given url
 func GetShareToken(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "method not allowed", 405)
@@ -194,16 +201,16 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	path := string(body)
-	if !strings.HasPrefix(path, "/api/files") {
-		http.Error(w, "path cannot be empty, and must began with /api/files", 400)
+	url := string(body)
+	if url == "" {
+		http.Error(w, "url cannot be empty", 400)
 		return
 	}
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
 		Login:            "_share",
 		Role:             req.Context().Value(types.ContextRole).(string),
-		Path:             path,
+		URL:              url,
 		SharingUserLogin: req.Context().Value(types.ContextLogin).(string),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: now().Add(time.Hour * time.Duration(24*7)).Unix(),

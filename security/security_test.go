@@ -50,23 +50,23 @@ func TestJWTAuthAndMiddleware(t *testing.T) {
 
 	// Get old JWTs
 	now = func() time.Time { return time.Now().Add(time.Hour * time.Duration(-24*8)) }
-	veryOldAdminHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
+	veryOldAdminHeader := "Bearer " + tester.DoRequestOnHandler(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	now = func() time.Time { return time.Now().Add(time.Hour * time.Duration(-24*6)) }
-	oldUserHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
-	oldAdminHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
+	oldUserHeader := "Bearer " + tester.DoRequestOnHandler(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
+	oldAdminHeader := "Bearer " + tester.DoRequestOnHandler(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	// Get JWTs
 	now = time.Now
-	userHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
-	adminHeader := "Bearer " + tester.DoRequest(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
+	userHeader := "Bearer " + tester.DoRequestOnHandler(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)
+	adminHeader := "Bearer " + tester.DoRequestOnHandler(t, http.HandlerFunc(Authenticate), "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
 
 	handler := ValidateJWTMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
 	}), []string{"admin", "user"})
-	tester.DoRequest(t, handler, "GET", "/", veryOldAdminHeader, ``, http.StatusForbidden, `token is expired`)
-	tester.DoRequest(t, handler, "GET", "/", oldUserHeader, ``, http.StatusForbidden, `token is expired`)
-	tester.DoRequest(t, handler, "GET", "/", oldAdminHeader, ``, http.StatusOK, `OK`)
-	tester.DoRequest(t, handler, "GET", "/", userHeader, ``, http.StatusOK, `OK`)
-	tester.DoRequest(t, handler, "GET", "/", adminHeader, ``, http.StatusOK, `OK`)
-	tester.DoRequest(t, handler, "GET", "/", wrongAuthHeader, ``, http.StatusForbidden, `signature is invalid`)
+	tester.DoRequestOnHandler(t, handler, "GET", "/", veryOldAdminHeader, ``, http.StatusForbidden, `token is expired`)
+	tester.DoRequestOnHandler(t, handler, "GET", "/", oldUserHeader, ``, http.StatusForbidden, `token is expired`)
+	tester.DoRequestOnHandler(t, handler, "GET", "/", oldAdminHeader, ``, http.StatusOK, `OK`)
+	tester.DoRequestOnHandler(t, handler, "GET", "/", userHeader, ``, http.StatusOK, `OK`)
+	tester.DoRequestOnHandler(t, handler, "GET", "/", adminHeader, ``, http.StatusOK, `OK`)
+	tester.DoRequestOnHandler(t, handler, "GET", "/", wrongAuthHeader, ``, http.StatusForbidden, `signature is invalid`)
 }

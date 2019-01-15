@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -41,20 +42,8 @@ func main() {
 	log.Logger.Println("Server is starting...")
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
-	// Create the app handler
-	appServer, err := appserver.NewServer("./config/apps.json", *port, *frameSource, *mainHostName)
-	if err != nil {
-		log.Logger.Fatal(err)
-	}
-	var appHandler http.Handler = appServer
-
-	// Create the main handler
-	mainMux := createMainMux(appServer)
-
-	// Put it together into the main handler
-	rootMux := http.NewServeMux()
-	rootMux.Handle(*mainHostName+"/", webSecurityMiddleware(mainMux))
-	rootMux.Handle("/", appHandler)
+	// Create the server
+	rootMux, hostPolicy := createRootMux(*port, *frameSource, *mainHostName)
 
 	// Serve locally with https on debug mode or with let's encrypt on production mode
 	if *debugMode {
@@ -63,7 +52,7 @@ func main() {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			Cache:      autocert.DirCache(*letsCacheDir),
-			HostPolicy: appServer.HostPolicy,
+			HostPolicy: hostPolicy,
 		}
 
 		server := &http.Server{
@@ -81,6 +70,24 @@ func main() {
 		server.ListenAndServeTLS("", "")
 	}
 
+}
+
+func createRootMux(port int, frameSource string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {
+	// Create the app handler
+	appServer, err := appserver.NewServer("./config/apps.json", port, frameSource, mainHostName)
+	if err != nil {
+		log.Logger.Fatal(err)
+	}
+	var appHandler http.Handler = appServer
+
+	// Create the main handler
+	mainMux := createMainMux(appServer)
+
+	// Put it together into the main handler
+	rootMux := http.NewServeMux()
+	rootMux.Handle(mainHostName+"/", webSecurityMiddleware(mainMux))
+	rootMux.Handle("/", appHandler)
+	return rootMux, appServer.HostPolicy
 }
 
 func createMainMux(appServer *appserver.Server) http.Handler {
