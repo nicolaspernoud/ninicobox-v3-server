@@ -30,7 +30,7 @@ func TestEndToEnd(t *testing.T) {
 	updatedAppsWithSchemes := strings.Replace(initialApps, "unsecuredreverseproxy.", "http://unsecuredreverseproxy.", 1)
 	filteredApps := `[{"name":"UnsecuredReverseProxy","isProxy":true,"host":"unsecuredreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":"","roles":[]},{"name":"SecuredProxy","isProxy":true,"host":"securedreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":true,"icon":"navigation","rank":"2","iframed":true,"iframepath":"/test","login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","isProxy":false,"host":"staticserver.127.0.0.1.nip.io","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"4","iframed":false,"iframepath":"","login":"","password":"","roles":[]}]`
 	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
-	shareTokenTargetPath := "/api/files/usersrw/File users 01.txt"
+	shareTokenTarget := `{"sharedfor":"download","url":"/api/files/usersrw/File%20users%2001.txt","lifespan":7}`
 	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
 	basicAuthAdminHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password"))
 
@@ -61,7 +61,7 @@ func TestEndToEnd(t *testing.T) {
 	// Try to delete a webdav resource
 	tester.DoRequestOnServer(t, port, "DELETE", "/api/files/usersrw/Test.txt", "", "", http.StatusUnauthorized, "no token found")
 	// Try to get a share token for an user reserved resource
-	tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", "", shareTokenTargetPath, http.StatusUnauthorized, "no token found")
+	tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", "", shareTokenTarget, http.StatusUnauthorized, "no token found")
 	// Try to get a basic auth protected webdav ressource without basic auth
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/basicauth/File admins 01.txt", "", "", http.StatusUnauthorized, "authorization header could not be processed")
 	// Try to get an admin basic auth protected webdav ressource with incorrect basic auth
@@ -87,29 +87,29 @@ func TestEndToEnd(t *testing.T) {
 	tester.DoRequestOnServer(t, port, "POST", "/api/admin/apps", userHeader, updatedAppsWithSchemes, http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to read a webdav resource
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt", userHeader, "", http.StatusOK, "Lorem ipsum")
-	// Try to walk back the shared path
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/Folder user 01/../..", userHeader, "", http.StatusNotFound, "")
+	// Try to walk back the shared path (gives index.html)
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/Folder user 01/../..", userHeader, "", http.StatusOK, "<!doctype html>")
 	// Try to create a webdav resource
 	tester.DoRequestOnServer(t, port, "PUT", "/api/files/adminsrw/Test.txt", userHeader, "This is a test", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to delete a webdav resource
 	tester.DoRequestOnServer(t, port, "DELETE", "/api/files/adminsrw/Test.txt", userHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
-	// Try to get a share token with an empty path
-	tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, "", http.StatusBadRequest, `url cannot be empty`)
+	// Try to get a share token with an empty url
+	tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"","lifespan":7}`, http.StatusBadRequest, `url cannot be empty`)
 	// Try to get a share token for an user reserved resource
-	shareHeader := "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, shareTokenTargetPath, http.StatusOK, `eyJhbG`)
+	shareHeader := "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, shareTokenTarget, http.StatusOK, `eyJhbG`)
 	t.Logf("Got share token auth header: %v", shareHeader)
 	// Try to use the share token for the token path
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt", shareHeader, "", http.StatusOK, "Lorem ipsum")
 	// Try to use the share token for a different path than the token path
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 02.txt", shareHeader, "", http.StatusForbidden, "the share token can only be used for the given path")
 	// Try to get a share token for an admin reserved resource (it's possible but the token will not be usable)
-	shareHeader = "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, "/api/files/adminsrw/File admins 01.txt", http.StatusOK, `eyJhbG`)
+	shareHeader = "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"/api/files/adminsrw/File%20admins%2001.txt","lifespan":7}`, http.StatusOK, `eyJhbG`)
 	// Try to use the share token for the admin token path
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt", shareHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get an admin basic auth protected webdav ressource with user basic auth
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/basicauth/File admins 01.txt", "Basic "+base64.StdEncoding.EncodeToString([]byte("user:password")), "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get a share token for an allowed app hostname
-	shareHeader = "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, "securedreverseproxy.127.0.0.1.nip.io", http.StatusOK, `eyJhbG`)
+	shareHeader = "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"securedreverseproxy.127.0.0.1.nip.io","lifespan":7}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got share header: %v", shareHeader)
 	// Try to use the share token for the allowed app
 	tester.DoRequestOnServer(t, port, "GET", "securedreverseproxy.127.0.0.1.nip.io", shareHeader, "", http.StatusOK, "<!doctype html>\n<html>\n<head>\n    <title>Example Domain</title>")

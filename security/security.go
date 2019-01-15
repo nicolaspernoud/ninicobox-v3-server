@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -196,24 +195,35 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "method not allowed", 405)
 		return
 	}
-	body, err := ioutil.ReadAll(req.Body)
+	var wantedToken struct {
+		Sharedfor string `json:"sharedfor"`
+		URL       string `json:"url"`
+		Lifespan  int    `json:"lifespan"`
+	}
+	err := json.NewDecoder(req.Body).Decode(&wantedToken)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
-	url := string(body)
-	if url == "" {
+	if wantedToken.URL == "" {
 		http.Error(w, "url cannot be empty", 400)
 		return
 	}
+	role := req.Context().Value(types.ContextRole).(string)
+	var expiresAt int64
+	if role == "admin" {
+		expiresAt = now().Add(time.Hour * time.Duration(24*wantedToken.Lifespan)).Unix()
+	} else {
+		expiresAt = now().Add(time.Hour * time.Duration(3)).Unix()
+	}
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
-		Login:            "_share",
-		Role:             req.Context().Value(types.ContextRole).(string),
-		URL:              url,
+		Login:            "_share_for_" + wantedToken.Sharedfor,
+		Role:             role,
+		URL:              wantedToken.URL,
 		SharingUserLogin: req.Context().Value(types.ContextLogin).(string),
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: now().Add(time.Hour * time.Duration(24*7)).Unix(),
+			ExpiresAt: expiresAt,
 			IssuedAt:  now().Unix(),
 		},
 	})
