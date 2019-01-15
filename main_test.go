@@ -88,7 +88,7 @@ func TestEndToEnd(t *testing.T) {
 	// Try to read a webdav resource
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt", userHeader, "", http.StatusOK, "Lorem ipsum")
 	// Try to walk back the shared path (gives index.html)
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/Folder user 01/../..", userHeader, "", http.StatusOK, "<!doctype html>")
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/Folder user 01/../..", userHeader, "", http.StatusNotFound, "")
 	// Try to create a webdav resource
 	tester.DoRequestOnServer(t, port, "PUT", "/api/files/adminsrw/Test.txt", userHeader, "This is a test", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to delete a webdav resource
