@@ -28,7 +28,7 @@ var port int
 var frameSource string
 var mainHostName string
 
-// Server implements an http.Handler that acts as either a reverse proxy ora simple file server, as determined by a rule set.
+// Server implements an http.Handler that acts as either a reverse proxy or a simple file server, as determined by a rule set.
 type Server struct {
 	mu   sync.RWMutex // guards the fields below
 	last time.Time
@@ -107,13 +107,13 @@ func (s *Server) HostPolicy(ctx context.Context, host string) error {
 	defer s.mu.RUnlock()
 
 	// Check if host is main host
-	if host == mainHostName || host == "www."+mainHostName {
+	if host == mainHostName {
 		return nil
 	}
 
 	// If not check if the host is in allowed apps
 	for _, app := range s.apps {
-		if host == app.Host || host == "www."+app.Host {
+		if host == app.Host {
 			return nil
 		}
 	}
