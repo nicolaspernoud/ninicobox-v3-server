@@ -8,9 +8,24 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 
 	"./tester"
+)
+
+var (
+	initialUsers              = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu","longLivedToken":true},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26","longLivedToken":false}]`
+	updatedUsers              = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu","longLivedToken":true},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26","longLivedToken":false}]`
+	initialAppsBuff, _        = ioutil.ReadFile("./config/apps.json")
+	reg, _                    = regexp.Compile("[\n \t]+")
+	initialApps               = reg.ReplaceAllString(string(initialAppsBuff), "")
+	updatedAppsWithSchemes    = strings.Replace(initialApps, "unsecuredreverseproxy.", "http://unsecuredreverseproxy.", 1)
+	filteredApps              = `[{"name":"UnsecuredReverseProxy","isProxy":true,"host":"unsecuredreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":"","roles":[]},{"name":"SecuredProxy","isProxy":true,"host":"securedreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":true,"icon":"navigation","rank":"2","iframed":true,"iframepath":"/test","login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","isProxy":false,"host":"staticserver.127.0.0.1.nip.io","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"4","iframed":false,"iframepath":"","login":"","password":"","roles":[]}]`
+	updatedUsersBlankPassword = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
+	shareTokenTarget          = `{"sharedfor":"download","url":"/api/files/usersrw/File%20users%2001.txt","lifespan":7}`
+	wrongAuthHeader           = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
+	basicAuthAdminHeader      = "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password"))
 )
 
 func TestEndToEnd(t *testing.T) {
@@ -21,23 +36,21 @@ func TestEndToEnd(t *testing.T) {
 	url, _ := url.Parse(ts.URL)
 	port := url.Port()
 
-	initialUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu","longLivedToken":true},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26","longLivedToken":false}]`
-	updatedUsers := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu","longLivedToken":true},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26","longLivedToken":false}]`
-	initialAppsBuff, _ := ioutil.ReadFile("./config/apps.json")
-	initialApps := string(initialAppsBuff)
-	reg, _ := regexp.Compile("[\n \t]+")
-	initialApps = reg.ReplaceAllString(initialApps, "")
-	updatedAppsWithSchemes := strings.Replace(initialApps, "unsecuredreverseproxy.", "http://unsecuredreverseproxy.", 1)
-	filteredApps := `[{"name":"UnsecuredReverseProxy","isProxy":true,"host":"unsecuredreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":false,"icon":"navigation","rank":"1","iframed":true,"iframepath":"/test","login":"","password":"","roles":[]},{"name":"SecuredProxy","isProxy":true,"host":"securedreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":true,"icon":"navigation","rank":"2","iframed":true,"iframepath":"/test","login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","isProxy":false,"host":"staticserver.127.0.0.1.nip.io","forwardTo":"","serve":"./appserver/testdata","secured":false,"icon":"folder","rank":"4","iframed":false,"iframepath":"","login":"","password":"","roles":[]}]`
-	updatedUsersBlankPassword := `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
-	shareTokenTarget := `{"sharedfor":"download","url":"/api/files/usersrw/File%20users%2001.txt","lifespan":7}`
-	wrongAuthHeader := "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
-	basicAuthAdminHeader := "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password"))
-
 	// Try to access the general informations
 	tester.DoRequestOnServer(t, port, "GET", "/api/infos", "", "", http.StatusOK, `{"server_version":`)
 
-	// === Try to access the resources as an unidentified user ===
+	var wg sync.WaitGroup
+	functions := []func(t *testing.T, port string, wg *sync.WaitGroup){CheckUnidentifiedUser, CheckUser, CheckAdmin}
+	for _, f := range functions {
+		wg.Add(1)
+		go f(t, port, &wg)
+	}
+	wg.Wait()
+}
+
+// === Try to access the resources as an unidentified user ===
+func CheckUnidentifiedUser(t *testing.T, port string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	// Do a login with an unknown user
 	tester.DoRequestOnServer(t, port, "POST", "/api/login", "", `{"login": "unknownuser","password": "password"}`, http.StatusForbidden, `user not found`)
 	// Do a login with a known user but bad password
@@ -66,8 +79,11 @@ func TestEndToEnd(t *testing.T) {
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/basicauth/File admins 01.txt", "", "", http.StatusUnauthorized, "authorization header could not be processed")
 	// Try to get an admin basic auth protected webdav ressource with incorrect basic auth
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/basicauth/File admins 01.txt", "Basic "+base64.StdEncoding.EncodeToString([]byte("password")), "", http.StatusForbidden, "user not found")
+}
 
-	// === Try to access the resources as an normal user ===
+// === Try to access the resources as an normal user ===
+func CheckUser(t *testing.T, port string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	// Do a login with an incorrect method
 	tester.DoRequestOnServer(t, port, "GET", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusMethodNotAllowed, "method not allowed")
 	// Do a login with the correct user
@@ -117,8 +133,11 @@ func TestEndToEnd(t *testing.T) {
 	tester.DoRequestOnServer(t, port, "GET", "adminonlyproxy.127.0.0.1.nip.io", shareHeader, "", http.StatusForbidden, "the share token can only be used for the given host")
 	// Try to use the share token for an admin file
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt", shareHeader, "", http.StatusForbidden, "the share token can only be used for the given host")
+}
 
-	// === Try to access the resources as an admin ===
+// === Try to access the resources as an admin ===
+func CheckAdmin(t *testing.T, port string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	// Do a login with the correct admin user
 	adminHeader := "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got admin auth header: %v", adminHeader)
