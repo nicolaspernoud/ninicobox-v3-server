@@ -22,11 +22,12 @@ import (
 )
 
 var (
-	letsCacheDir = flag.String("letsencrypt_cache", "./letsencrypt_cache", "letsencrypt cache `directory`")
+	letsCacheDir = flag.String("letsencrypt_cache", "./letsencrypt_cache", "let's encrypt cache `directory`")
 	mainHostName = flag.String("hostname", "localhost", "Main hostname, default to localhost")
 	frameSource  = flag.String("framesource", "localhost", "Location from where iframes are allowed, default to localhost")
 	debugMode    = flag.Bool("debug", false, "Debug mode, disable let's encrypt, enable CORS and more logging")
-	port         = flag.Int("https_port", 443, "HTTPS port to serve on (default to 443)")
+	httpsPort    = flag.Int("https_port", 443, "HTTPS port to serve on (default to 443)")
+	httpPort     = flag.Int("http_port", 80, "HTTP port to serve on (default to 80), only used to get let's encrypt certificates")
 
 	adminAuth = security.AuthenticationMiddleware{
 		AllowedRoles: []string{"admin"},
@@ -43,11 +44,11 @@ func main() {
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
 	// Create the server
-	rootMux, hostPolicy := createRootMux(*port, *frameSource, *mainHostName)
+	rootMux, hostPolicy := createRootMux(*httpsPort, *frameSource, *mainHostName)
 
 	// Serve locally with https on debug mode or with let's encrypt on production mode
 	if *debugMode {
-		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*port), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", corsMiddleware(logMiddleware(rootMux))))
+		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*httpsPort), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", corsMiddleware(logMiddleware(rootMux))))
 	} else {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
@@ -56,7 +57,7 @@ func main() {
 		}
 
 		server := &http.Server{
-			Addr:    ":" + strconv.Itoa(*port),
+			Addr:    ":" + strconv.Itoa(*httpsPort),
 			Handler: rootMux,
 			TLSConfig: &tls.Config{
 				GetCertificate: certManager.GetCertificate,
@@ -66,7 +67,7 @@ func main() {
 			IdleTimeout:  120 * time.Second,
 		}
 
-		go http.ListenAndServe(":80", certManager.HTTPHandler(nil))
+		go http.ListenAndServe(":"+strconv.Itoa(*httpPort), certManager.HTTPHandler(nil))
 		server.ListenAndServeTLS("", "")
 	}
 
