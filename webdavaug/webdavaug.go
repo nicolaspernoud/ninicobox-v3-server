@@ -154,7 +154,7 @@ func zipAndServe(w http.ResponseWriter, root string, name string) {
 		// On root call, set filename and rootPath
 		if rootPath == "" {
 			rootPath = path
-			w.Header().Set("Content-Disposition", "attachment; filename="+info.Name()+".zip")
+			w.Header().Set("Content-Disposition", "attachment; filename*="+url.PathEscape(info.Name())+".zip")
 		}
 
 		if err != nil {
