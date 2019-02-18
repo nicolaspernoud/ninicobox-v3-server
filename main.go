@@ -13,11 +13,11 @@ import (
 	"strconv"
 	"time"
 
-	"./appserver"
-	"./log"
-	"./security"
-	"./types"
-	"./webdavaug"
+	"./packages/appserver"
+	"./packages/log"
+	"./packages/security"
+	"./packages/types"
+	"./packages/webdavaug"
 	"golang.org/x/crypto/acme/autocert"
 )
 

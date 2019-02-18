@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"./tester"
+	"./packages/tester"
 )
 
 var (

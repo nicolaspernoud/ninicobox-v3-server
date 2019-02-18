@@ -18,7 +18,7 @@ func TestServer(t *testing.T) {
 	// Create config directory (errors are not handled, since is testing)
 	os.MkdirAll("config", os.ModePerm)
 	// Copy config file from parent directory (errors are not handled, since is testing)
-	input, _ := ioutil.ReadFile("../config/users.json")
+	input, _ := ioutil.ReadFile("../../config/users.json")
 	ioutil.WriteFile("./config/users.json", input, os.ModePerm)
 	// Delete config directory after completion (errors are not handled, since is testing)
 	defer os.RemoveAll("config")
