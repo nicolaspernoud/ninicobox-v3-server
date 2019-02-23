@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"./internal/appserver"
-	"./internal/security"
 	"./internal/types"
-	"./internal/webdavaug"
 	"./pkg/common"
 	"./pkg/log"
+	"./pkg/security"
+	"./pkg/webdavaug"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -120,11 +120,11 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	adminMux := http.NewServeMux()
 	adminMux.HandleFunc("/users", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost {
-			types.SetUsers(w, req)
+			security.SetUsers(w, req)
 			return
 		}
 		if req.Method == http.MethodGet {
-			types.SendUsers(w, req)
+			security.SendUsers(w, req)
 			return
 		}
 		http.Error(w, "method not allowed", 405)

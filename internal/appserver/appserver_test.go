@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
+	"../../pkg/security"
 	"../../pkg/tester"
-	"../security"
 	"../types"
 )
 

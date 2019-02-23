@@ -14,7 +14,6 @@ import (
 
 	"../../pkg/common"
 	"../../pkg/log"
-	"../types"
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
@@ -46,7 +45,7 @@ func init() {
 func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		// Extract the login and password
-		var sentUser types.User
+		var sentUser User
 		basicAuthHeader := strings.Split(req.Header.Get("Authorization"), " ")
 		err := errors.New("authorization header could not be processed")
 		if basicAuthHeader[0] == "Basic" && len(basicAuthHeader) == 2 {
@@ -54,7 +53,7 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 			decoded, err = base64.StdEncoding.DecodeString(basicAuthHeader[1])
 			if err == nil {
 				if auth := strings.Split(string(decoded), ":"); len(auth) == 2 {
-					sentUser = types.User{
+					sentUser = User{
 						Login:    auth[0],
 						Password: auth[1],
 					}
@@ -68,7 +67,7 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 		}
 
 		// Try to match an user with the credentials provided
-		user, err := types.MatchUser(sentUser)
+		user, err := MatchUser(sentUser)
 		if err != nil {
 			http.Error(w, err.Error(), 403)
 			log.Logger.Printf("| %v | Basic auth failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
@@ -76,8 +75,8 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 		}
 
 		if err := checkUserRoleIsAllowed(user.Role, allowedRoles); err == nil {
-			ctx := context.WithValue(req.Context(), types.ContextLogin, user.Login)
-			ctx = context.WithValue(ctx, types.ContextRole, user.Role)
+			ctx := context.WithValue(req.Context(), ContextLogin, user.Login)
+			ctx = context.WithValue(ctx, ContextRole, user.Role)
 			next.ServeHTTP(w, req.WithContext(ctx))
 		} else {
 			http.Error(w, err.Error(), 403)
@@ -104,14 +103,14 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 			http.Error(w, err.Error(), 401)
 			return
 		}
-		token, err := jwt.ParseWithClaims(JWT, &types.JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
+		token, err := jwt.ParseWithClaims(JWT, &JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
 			return jWTSignature, nil
 		})
 		if err != nil {
 			http.Error(w, err.Error(), 403)
 			return
 		}
-		if claims, ok := token.Claims.(*types.JWTPayload); ok && token.Valid {
+		if claims, ok := token.Claims.(*JWTPayload); ok && token.Valid {
 			url, err := url.Parse("http://" + claims.URL)
 			if err != nil {
 				http.Error(w, err.Error(), 400)
@@ -131,8 +130,8 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 				return
 			}
 			if err := checkUserRoleIsAllowed(claims.Role, allowedRoles); err == nil {
-				ctx := context.WithValue(req.Context(), types.ContextLogin, claims.SharingUserLogin+claims.Login)
-				ctx = context.WithValue(ctx, types.ContextRole, claims.Role)
+				ctx := context.WithValue(req.Context(), ContextLogin, claims.SharingUserLogin+claims.Login)
+				ctx = context.WithValue(ctx, ContextRole, claims.Role)
 				// if the JWT origin is a query set the token as cookie in the response
 				if origin == "query" {
 					w.Header().Set("Set-Cookie", "jwt_token="+JWT+"; Path=/; Expires="+time.Unix(claims.ExpiresAt, 0).Format(time.RFC1123)+"; Secure; HttpOnly; SameSite=Strict")
@@ -153,14 +152,14 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "method not allowed", 405)
 		return
 	}
-	var sentUser types.User
+	var sentUser User
 	err := json.NewDecoder(req.Body).Decode(&sentUser)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 	// Try to match the user with an user in the database
-	user, err := types.MatchUser(sentUser)
+	user, err := MatchUser(sentUser)
 	if err != nil {
 		http.Error(w, err.Error(), 403)
 		log.Logger.Printf("| %v | Login failure | %v | %v", sentUser.Login, req.RemoteAddr, log.GetCityAndCountryFromRequest(req))
@@ -174,7 +173,7 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		expiresAt = now().Add(time.Hour * time.Duration(12)).Unix()
 	}
 	// If user is found, create and send a JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTPayload{
 		Login:   user.Login,
 		Name:    user.Name,
 		Surname: user.Surname,
@@ -213,7 +212,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "url cannot be empty", 400)
 		return
 	}
-	role := req.Context().Value(types.ContextRole).(string)
+	role := req.Context().Value(ContextRole).(string)
 	var expiresAt int64
 	if role == "admin" {
 		expiresAt = now().Add(time.Hour * time.Duration(24*wantedToken.Lifespan)).Unix()
@@ -221,11 +220,11 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		expiresAt = now().Add(time.Hour * time.Duration(3)).Unix()
 	}
 	// If user is found, create and send a JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, types.JWTPayload{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, JWTPayload{
 		Login:            "_share_for_" + wantedToken.Sharedfor,
 		Role:             role,
 		URL:              wantedToken.URL,
-		SharingUserLogin: req.Context().Value(types.ContextLogin).(string),
+		SharingUserLogin: req.Context().Value(ContextLogin).(string),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expiresAt,
 			IssuedAt:  now().Unix(),
@@ -281,7 +280,7 @@ func ExtractToken(r *http.Request) (string, string, error) {
 
 // UserLoginFromContext retrieve user login from request context
 func UserLoginFromContext(ctx context.Context) string {
-	user, ok := ctx.Value(types.ContextLogin).(string)
+	user, ok := ctx.Value(ContextLogin).(string)
 	if ok {
 		return user
 	}

@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"../../pkg/log"
-	"../security"
+	"../../pkg/security"
 	"golang.org/x/net/webdav"
 )
 

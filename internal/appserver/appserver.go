@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"../security"
+	"../../pkg/security"
 	"../types"
 )
 
