@@ -9,12 +9,12 @@ import (
 
 func TestMatchUser(t *testing.T) {
 	// Create config directory (errors are not handled, since is testing)
-	os.MkdirAll("config", os.ModePerm)
+	os.MkdirAll("configs", os.ModePerm)
 	// Copy config file from parent directory (errors are not handled, since is testing)
-	input, _ := ioutil.ReadFile("../../config/users.json")
-	ioutil.WriteFile("./config/users.json", input, os.ModePerm)
+	input, _ := ioutil.ReadFile("../../configs/users.json")
+	ioutil.WriteFile("./configs/users.json", input, os.ModePerm)
 	// Delete config directory after completion (errors are not handled, since is testing)
-	defer os.RemoveAll("config")
+	defer os.RemoveAll("configs")
 
 	existingUser := User{ID: 2, Login: "user", Name: "Us", Surname: "ER", Role: "user", PasswordHash: "$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}
 	veryLongString := string(RandomByteArray(10000))

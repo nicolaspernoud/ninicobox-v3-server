@@ -13,6 +13,6 @@ debug
 *.out
 
 # Specific to the project
-config/jwtsignature.json
-!client/package.json
-/client
+configs/jwtsignature.json
+!web/package.json
+/web

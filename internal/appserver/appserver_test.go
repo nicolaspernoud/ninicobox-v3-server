@@ -9,19 +9,19 @@ import (
 	"os"
 	"testing"
 
+	"../../pkg/tester"
 	"../security"
-	"../tester"
 	"../types"
 )
 
 func TestServer(t *testing.T) {
 	// Create config directory (errors are not handled, since is testing)
-	os.MkdirAll("config", os.ModePerm)
+	os.MkdirAll("configs", os.ModePerm)
 	// Copy config file from parent directory (errors are not handled, since is testing)
-	input, _ := ioutil.ReadFile("../../config/users.json")
-	ioutil.WriteFile("./config/users.json", input, os.ModePerm)
+	input, _ := ioutil.ReadFile("../../configs/users.json")
+	ioutil.WriteFile("./configs/users.json", input, os.ModePerm)
 	// Delete config directory after completion (errors are not handled, since is testing)
-	defer os.RemoveAll("config")
+	defer os.RemoveAll("configs")
 
 	// Get JWTs
 	userHeader := "Bearer " + tester.DoRequestOnHandler(t, http.HandlerFunc(security.Authenticate), "POST", "/api/login", "", `{"login": "user","password": "password"}`, http.StatusOK, `eyJhbG`)

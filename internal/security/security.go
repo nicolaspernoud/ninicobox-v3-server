@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"../log"
+	"../../pkg/log"
 	"../types"
 	jwt "github.com/dgrijalva/jwt-go"
 )
@@ -27,11 +27,11 @@ func init() {
 	var jWTConfig struct {
 		JWTSignature string
 	}
-	err := types.Load("./config/jwtsignature.json", &jWTConfig)
+	err := types.Load("./configs/jwtsignature.json", &jWTConfig)
 	if err != nil {
 		jWTSignature = types.RandomByteArray(48)
 		jWTConfig.JWTSignature = string(jWTSignature)
-		err := types.Save("./config/jwtsignature.json", jWTConfig)
+		err := types.Save("./configs/jwtsignature.json", jWTConfig)
 		if err != nil {
 			log.Logger.Println("Token signing key could not be saved")
 		}

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"../tester"
+	"../../pkg/tester"
 )
 
 func Test_checkUserRoleIsAllowed(t *testing.T) {
@@ -41,12 +41,12 @@ func Test_checkUserRoleIsAllowed(t *testing.T) {
 func TestJWTAuthAndMiddleware(t *testing.T) {
 
 	// Create config directory (errors are not handled, since is testing)
-	os.MkdirAll("config", os.ModePerm)
+	os.MkdirAll("configs", os.ModePerm)
 	// Copy config file from parent directory (errors are not handled, since is testing)
-	input, _ := ioutil.ReadFile("../../config/users.json")
-	ioutil.WriteFile("./config/users.json", input, os.ModePerm)
+	input, _ := ioutil.ReadFile("../../configs/users.json")
+	ioutil.WriteFile("./configs/users.json", input, os.ModePerm)
 	// Delete config directory after completion (errors are not handled, since is testing)
-	defer os.RemoveAll("config")
+	defer os.RemoveAll("configs")
 
 	// Get old JWTs
 	now = func() time.Time { return time.Now().Add(time.Hour * time.Duration(-24*8)) }

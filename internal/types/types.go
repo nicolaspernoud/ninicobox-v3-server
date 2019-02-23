@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"../du"
+	"../../pkg/du"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -57,7 +57,7 @@ type User struct {
 // SendUsers send users as response from an http requests
 func SendUsers(w http.ResponseWriter, req *http.Request) {
 	var users []User
-	err := Load("./config/users.json", &users)
+	err := Load("./configs/users.json", &users)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
@@ -93,7 +93,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	err := Save("./config/users.json", &users)
+	err := Save("./configs/users.json", &users)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -105,7 +105,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 func MatchUser(sentUser User) (User, error) {
 	var emptyUser User
 	var users []User
-	err := Load("./config/users.json", &users)
+	err := Load("./configs/users.json", &users)
 	if err != nil {
 		fmt.Println(err.Error())
 		return emptyUser, err
@@ -141,7 +141,7 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	var filesacls []FilesACL
-	err := Load("./config/filesacls.json", &filesacls)
+	err := Load("./configs/filesacls.json", &filesacls)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
@@ -193,7 +193,7 @@ func SendInfos(w http.ResponseWriter, req *http.Request) {
 func InfosFromJSONFiles() (Infos, error) {
 	// Get the client version
 	var clientPackage interface{}
-	err := Load("./client/package.json", &clientPackage)
+	err := Load("./web/package.json", &clientPackage)
 	if err != nil {
 		return Infos{}, err
 	}
@@ -203,7 +203,7 @@ func InfosFromJSONFiles() (Infos, error) {
 
 	// Get the bookmarks
 	var bookmarks []Bookmark
-	err = Load("./config/bookmarks.json", &bookmarks)
+	err = Load("./configs/bookmarks.json", &bookmarks)
 	if err != nil {
 		return Infos{}, err
 	}
@@ -235,7 +235,7 @@ type App struct {
 func SendApps(w http.ResponseWriter, req *http.Request) {
 	role := req.Context().Value(ContextRole).(string)
 	var apps []App
-	err := Load("./config/apps.json", &apps)
+	err := Load("./configs/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
@@ -280,7 +280,7 @@ func SetApps(w http.ResponseWriter, req *http.Request) {
 			apps[key].Host = strings.TrimPrefix(val.Host, "https://")
 		}
 	}
-	err = Save("./config/apps.json", &apps)
+	err = Save("./configs/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return

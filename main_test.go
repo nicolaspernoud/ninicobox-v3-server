@@ -11,13 +11,13 @@ import (
 	"sync"
 	"testing"
 
-	"./packages/tester"
+	"./pkg/tester"
 )
 
 var (
 	initialUsers              = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu","longLivedToken":true},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26","longLivedToken":false}]`
 	updatedUsers              = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"newpassword","passwordHash":"$2a$10$WQeaeTOQbzC1w3FP41x7tuHT.LI9AfjL1UV7LoYzozZ7XzAJ.YRtu","longLivedToken":true},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26","longLivedToken":false}]`
-	initialAppsBuff, _        = ioutil.ReadFile("./config/apps.json")
+	initialAppsBuff, _        = ioutil.ReadFile("./configs/apps.json")
 	reg, _                    = regexp.Compile("[\n \t]+")
 	initialApps               = reg.ReplaceAllString(string(initialAppsBuff), "")
 	updatedAppsWithSchemes    = strings.Replace(initialApps, "unsecuredreverseproxy.", "http://unsecuredreverseproxy.", 1)

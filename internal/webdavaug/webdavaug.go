@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"../log"
+	"../../pkg/log"
 	"../security"
 	"golang.org/x/net/webdav"
 )

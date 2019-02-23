@@ -13,11 +13,11 @@ import (
 	"strconv"
 	"time"
 
-	"./packages/appserver"
-	"./packages/log"
-	"./packages/security"
-	"./packages/types"
-	"./packages/webdavaug"
+	"./internal/appserver"
+	"./internal/security"
+	"./internal/types"
+	"./internal/webdavaug"
+	"./pkg/log"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -75,7 +75,7 @@ func main() {
 
 func createRootMux(port int, frameSource string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {
 	// Create the app handler
-	appServer, err := appserver.NewServer("./config/apps.json", port, frameSource, mainHostName)
+	appServer, err := appserver.NewServer("./configs/apps.json", port, frameSource, mainHostName)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	adminMux.HandleFunc("/apps", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method == http.MethodPost {
 			types.SetApps(w, req)
-			if err := appServer.LoadApps("./config/apps.json"); err != nil {
+			if err := appServer.LoadApps("./configs/apps.json"); err != nil {
 				http.Error(w, "error loading apps", 400)
 			}
 			return
@@ -143,7 +143,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	// Create webdav routes according to filesacl.json
 	// For each ACL, create a route with a webdav handler that match the route, with the ACL permissions and methods
 	var filesACLs []types.FilesACL
-	err := types.Load("./config/filesacls.json", &filesACLs)
+	err := types.Load("./configs/filesacls.json", &filesACLs)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
@@ -155,7 +155,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	}
 
 	// Serve static files falling back to serving index.html
-	mainMux.Handle("/", http.FileServer(&fallBackWrapper{http.Dir("client")}))
+	mainMux.Handle("/", http.FileServer(&fallBackWrapper{http.Dir("web")}))
 
 	return mainMux
 }
