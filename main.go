@@ -17,6 +17,7 @@ import (
 	"./internal/security"
 	"./internal/types"
 	"./internal/webdavaug"
+	"./pkg/common"
 	"./pkg/log"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -143,7 +144,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	// Create webdav routes according to filesacl.json
 	// For each ACL, create a route with a webdav handler that match the route, with the ACL permissions and methods
 	var filesACLs []types.FilesACL
-	err := types.Load("./configs/filesacls.json", &filesACLs)
+	err := common.Load("./configs/filesacls.json", &filesACLs)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {

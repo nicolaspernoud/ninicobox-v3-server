@@ -1,18 +1,13 @@
 package types
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"math/rand"
 	"net/http"
-	"os"
 	"strings"
-	"sync"
-	"time"
 
+	"../../pkg/common"
 	"../../pkg/du"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
@@ -27,9 +22,6 @@ const (
 	ContextRole key = 1
 	gB              = 1 << (10 * 3)
 )
-
-// Mutex used to lock file writing
-var lock sync.Mutex
 
 // JWTPayload represents the payload of a JWT
 type JWTPayload struct {
@@ -57,7 +49,7 @@ type User struct {
 // SendUsers send users as response from an http requests
 func SendUsers(w http.ResponseWriter, req *http.Request) {
 	var users []User
-	err := Load("./configs/users.json", &users)
+	err := common.Load("./configs/users.json", &users)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
@@ -93,7 +85,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	err := Save("./configs/users.json", &users)
+	err := common.Save("./configs/users.json", &users)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
@@ -105,7 +97,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 func MatchUser(sentUser User) (User, error) {
 	var emptyUser User
 	var users []User
-	err := Load("./configs/users.json", &users)
+	err := common.Load("./configs/users.json", &users)
 	if err != nil {
 		fmt.Println(err.Error())
 		return emptyUser, err
@@ -141,7 +133,7 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	var filesacls []FilesACL
-	err := Load("./configs/filesacls.json", &filesacls)
+	err := common.Load("./configs/filesacls.json", &filesacls)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
@@ -193,7 +185,7 @@ func SendInfos(w http.ResponseWriter, req *http.Request) {
 func InfosFromJSONFiles() (Infos, error) {
 	// Get the client version
 	var clientPackage interface{}
-	err := Load("./web/package.json", &clientPackage)
+	err := common.Load("./web/package.json", &clientPackage)
 	if err != nil {
 		return Infos{}, err
 	}
@@ -203,7 +195,7 @@ func InfosFromJSONFiles() (Infos, error) {
 
 	// Get the bookmarks
 	var bookmarks []Bookmark
-	err = Load("./configs/bookmarks.json", &bookmarks)
+	err = common.Load("./configs/bookmarks.json", &bookmarks)
 	if err != nil {
 		return Infos{}, err
 	}
@@ -235,7 +227,7 @@ type App struct {
 func SendApps(w http.ResponseWriter, req *http.Request) {
 	role := req.Context().Value(ContextRole).(string)
 	var apps []App
-	err := Load("./configs/apps.json", &apps)
+	err := common.Load("./configs/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
@@ -280,64 +272,10 @@ func SetApps(w http.ResponseWriter, req *http.Request) {
 			apps[key].Host = strings.TrimPrefix(val.Host, "https://")
 		}
 	}
-	err = Save("./configs/apps.json", &apps)
+	err = common.Save("./configs/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
 	SendApps(w, req)
-}
-
-// Save saves a representation of v to the file at path.
-func Save(path string, v interface{}) error {
-	lock.Lock()
-	defer lock.Unlock()
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	r, err := Marshal(v)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(f, r)
-	return err
-}
-
-// Load loads the file at path into v. Use os.IsNotExist() to see if the returned error is due to the file being missing.
-func Load(path string, v interface{}) error {
-	lock.Lock()
-	defer lock.Unlock()
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return Unmarshal(f, v)
-}
-
-// Marshal is a function that marshals the object into an io.Reader. By default, it uses the JSON marshaller.
-var Marshal = func(v interface{}) (io.Reader, error) {
-	b, err := json.MarshalIndent(v, "", "\t")
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(b), nil
-}
-
-// Unmarshal is a function that unmarshals the data from the reader into the specified value. By default, it uses the JSON unmarshaller.
-var Unmarshal = func(r io.Reader, v interface{}) error {
-	return json.NewDecoder(r).Decode(v)
-}
-
-// RandomByteArray generates a byte array of length "length" with random characters taken from letterBytes
-func RandomByteArray(length int) []byte {
-	rand.Seed(time.Now().UnixNano())
-	letterBytes := "123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	b := make([]byte, length)
-	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
-	}
-	return b
 }

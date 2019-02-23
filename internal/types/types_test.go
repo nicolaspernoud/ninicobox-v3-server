@@ -5,6 +5,8 @@ import (
 	"os"
 	"reflect"
 	"testing"
+
+	"../../pkg/common"
 )
 
 func TestMatchUser(t *testing.T) {
@@ -17,7 +19,7 @@ func TestMatchUser(t *testing.T) {
 	defer os.RemoveAll("configs")
 
 	existingUser := User{ID: 2, Login: "user", Name: "Us", Surname: "ER", Role: "user", PasswordHash: "$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}
-	veryLongString := string(RandomByteArray(10000))
+	veryLongString := string(common.RandomByteArray(10000))
 	specialCharString := "\""
 
 	type args struct {
