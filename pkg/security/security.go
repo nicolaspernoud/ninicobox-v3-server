@@ -91,6 +91,9 @@ type AuthenticationMiddleware struct {
 
 func validateJWT(JWT string, allowedRoles []string, req *http.Request) (int, *JWTPayload, error) {
 	token, err := jwt.ParseWithClaims(JWT, &JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return jWTSignature, nil
 	})
 	if err != nil {
