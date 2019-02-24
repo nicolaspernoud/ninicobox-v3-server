@@ -89,6 +89,40 @@ type AuthenticationMiddleware struct {
 	AllowedRoles []string
 }
 
+func validateJWT(JWT string, allowedRoles []string, req *http.Request) (int, *JWTPayload, error) {
+	token, err := jwt.ParseWithClaims(JWT, &JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
+		return jWTSignature, nil
+	})
+	if err != nil {
+		return 403, nil, err
+	}
+	claims, ok := token.Claims.(*JWTPayload)
+	if ok && token.Valid {
+		url, err := url.Parse("http://" + claims.URL)
+		if err != nil {
+			return 400, claims, err
+		}
+		urlHost := url.Hostname()
+		requestHost, _, err := net.SplitHostPort(req.Host)
+		if err != nil {
+			requestHost = req.Host
+		}
+		if hostNotMatched := urlHost != "" && urlHost != requestHost; hostNotMatched {
+			return 403, claims, errors.New("the share token can only be used for the given host")
+		}
+		urlPath := url.Path
+		if pathNotMatched := urlPath != "" && urlPath != req.URL.Path; pathNotMatched {
+			return 403, claims, errors.New("the share token can only be used for the given path")
+		}
+		err = checkUserRoleIsAllowed(claims.Role, allowedRoles)
+		if err != nil {
+			return 403, claims, err
+		}
+		return 200, claims, err
+	}
+	return 400, claims, errors.New("invalid authorization token")
+}
+
 // ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
 func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) http.Handler {
 	return ValidateJWTMiddleware(next, amw.AllowedRoles)
@@ -97,52 +131,20 @@ func (amw *AuthenticationMiddleware) ValidateJWTMiddleware(next http.Handler) ht
 // ValidateJWTMiddleware tests if a JWT token is present, and valid, in the request and returns an Error if not
 func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		JWT, origin, err := ExtractToken(req)
+		JWT, err := ExtractToken(req)
 		if err != nil {
 			w.Header().Set("WWW-Authenticate", `Basic realm="server"`)
 			http.Error(w, err.Error(), 401)
 			return
 		}
-		token, err := jwt.ParseWithClaims(JWT, &JWTPayload{}, func(token *jwt.Token) (interface{}, error) {
-			return jWTSignature, nil
-		})
+		httpCode, claims, err := validateJWT(JWT, allowedRoles, req)
 		if err != nil {
-			http.Error(w, err.Error(), 403)
+			http.Error(w, err.Error(), httpCode)
 			return
 		}
-		if claims, ok := token.Claims.(*JWTPayload); ok && token.Valid {
-			url, err := url.Parse("http://" + claims.URL)
-			if err != nil {
-				http.Error(w, err.Error(), 400)
-			}
-			urlHost := url.Hostname()
-			requestHost, _, err := net.SplitHostPort(req.Host)
-			if err != nil {
-				requestHost = req.Host
-			}
-			if hostNotMatched := urlHost != "" && urlHost != requestHost; hostNotMatched {
-				http.Error(w, "the share token can only be used for the given host", 403)
-				return
-			}
-			urlPath := url.Path
-			if pathNotMatched := urlPath != "" && urlPath != req.URL.Path; pathNotMatched {
-				http.Error(w, "the share token can only be used for the given path", 403)
-				return
-			}
-			if err := checkUserRoleIsAllowed(claims.Role, allowedRoles); err == nil {
-				ctx := context.WithValue(req.Context(), ContextLogin, claims.SharingUserLogin+claims.Login)
-				ctx = context.WithValue(ctx, ContextRole, claims.Role)
-				// if the JWT origin is a query set the token as cookie in the response
-				if origin == "query" {
-					w.Header().Set("Set-Cookie", "jwt_token="+JWT+"; Path=/; Expires="+time.Unix(claims.ExpiresAt, 0).Format(time.RFC1123)+"; Secure; HttpOnly; SameSite=Strict")
-				}
-				next.ServeHTTP(w, req.WithContext(ctx))
-			} else {
-				http.Error(w, err.Error(), 403)
-			}
-		} else {
-			http.Error(w, "invalid authorization token", 400)
-		}
+		ctx := context.WithValue(req.Context(), ContextLogin, claims.SharingUserLogin+claims.Login)
+		ctx = context.WithValue(ctx, ContextRole, claims.Role)
+		next.ServeHTTP(w, req.WithContext(ctx))
 	})
 }
 
@@ -255,20 +257,20 @@ func checkUserRoleIsAllowed(userRole string, allowedRoles []string) error {
 // ExtractToken from Authorization header in the form `Bearer <JWT Token>`
 // OR in an cookie named `jwt_token`
 // OR a URL query paramter of the form https://example.com?token=<JWT token>
-func ExtractToken(r *http.Request) (string, string, error) {
+func ExtractToken(r *http.Request) (string, error) {
 	jwtHeader := strings.Split(r.Header.Get("Authorization"), " ")
 	if jwtHeader[0] == "Bearer" && len(jwtHeader) == 2 {
-		return jwtHeader[1], "bearerHeader", nil
+		return jwtHeader[1], nil
 	}
 
 	jwtQuery := r.URL.Query().Get("token")
 	if jwtQuery != "" {
-		return jwtQuery, "query", nil
+		return jwtQuery, nil
 	}
 
 	jwtCookie, err := r.Cookie("jwt_token")
 	if err == nil {
-		return jwtCookie.Value, "cookie", nil
+		return jwtCookie.Value, nil
 	}
 
 	// try to use the basic auth header instead
@@ -276,11 +278,11 @@ func ExtractToken(r *http.Request) (string, string, error) {
 		decoded, err := base64.StdEncoding.DecodeString(jwtHeader[1])
 		if err == nil {
 			jwtHeader = strings.Split(string(decoded), ":")
-			return jwtHeader[1], "basicHeader", nil
+			return jwtHeader[1], nil
 		}
 	}
 
-	return "", "", fmt.Errorf("no token found")
+	return "", fmt.Errorf("no token found")
 }
 
 // UserLoginFromContext retrieve user login from request context
