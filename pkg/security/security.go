@@ -235,6 +235,11 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, err.Error(), 400)
 		return
 	}
+	var domain string
+	if idx := strings.Index(wantedToken.URL, "."); idx != -1 {
+		domain = wantedToken.URL[idx:]
+	}
+	w.Header().Set("Set-Cookie", "jwt_token="+tokenString+"; Path=/; Domain="+domain+"; Expires="+time.Unix(expiresAt, 0).Format(time.RFC1123)+"; Secure; HttpOnly; SameSite=Strict")
 	fmt.Fprintf(w, tokenString)
 }
 
