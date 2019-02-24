@@ -1,15 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"os"
-	"path"
 	"strconv"
 	"time"
 
@@ -45,11 +41,11 @@ func main() {
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
 	// Create the server
-	rootMux, hostPolicy := createRootMux(*httpsPort, *frameSource, *mainHostName)
+	rootMux, hostPolicy := createRootMux(*httpsPort, frameSource, *mainHostName)
 
 	// Serve locally with https on debug mode or with let's encrypt on production mode
 	if *debugMode {
-		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*httpsPort), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", corsMiddleware(logMiddleware(rootMux))))
+		log.Logger.Fatal(http.ListenAndServeTLS(":"+strconv.Itoa(*httpsPort), "./dev_certificates/localhost.crt", "./dev_certificates/localhost.key", security.CorsMiddleware(log.Middleware(rootMux), frameSource)))
 	} else {
 		certManager := autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
@@ -74,9 +70,9 @@ func main() {
 
 }
 
-func createRootMux(port int, frameSource string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {
+func createRootMux(port int, frameSource *string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {
 	// Create the app handler
-	appServer, err := appserver.NewServer("./configs/apps.json", port, frameSource, mainHostName)
+	appServer, err := appserver.NewServer("./configs/apps.json", port, *frameSource, mainHostName)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
@@ -87,7 +83,7 @@ func createRootMux(port int, frameSource string, mainHostName string) (http.Hand
 
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
-	rootMux.Handle(mainHostName+"/", webSecurityMiddleware(mainMux))
+	rootMux.Handle(mainHostName+"/", security.WebSecurityMiddleware(mainMux, frameSource))
 	rootMux.Handle("/", appHandler)
 	return rootMux, appServer.HostPolicy
 }
@@ -156,64 +152,7 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 	}
 
 	// Serve static files falling back to serving index.html
-	mainMux.Handle("/", http.FileServer(&fallBackWrapper{http.Dir("web")}))
+	mainMux.Handle("/", http.FileServer(&common.FallBackWrapper{Assets: http.Dir("web")}))
 
 	return mainMux
-}
-
-type fallBackWrapper struct {
-	assets http.FileSystem
-}
-
-func (i *fallBackWrapper) Open(name string) (http.File, error) {
-	file, err := i.assets.Open(name)
-	// If the file is found but there is another error or the asked for file has an extension : return the file or error
-	if !os.IsNotExist(err) || path.Ext(name) != "" {
-		return file, err
-	}
-	// Else fall back to index.html
-	return i.assets.Open("index.html")
-}
-
-func logMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		readBody, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			log.Logger.Print("Body error : ", err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		newBody := ioutil.NopCloser(bytes.NewBuffer(readBody))
-		r.Body = newBody
-		log.Logger.Println(r.Method, r.URL.Path, r.RemoteAddr, r.UserAgent())
-		if string(readBody) != "" {
-			log.Logger.Printf("BODY : %q", readBody)
-		}
-		next.ServeHTTP(w, r)
-	})
-}
-
-func corsMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", *frameSource)
-		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, PROPFIND, MKCOL, MOVE, COPY")
-		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, Depth, Destination")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		if req.Method == "OPTIONS" {
-			return
-		}
-		next.ServeHTTP(w, req)
-	})
-}
-
-func webSecurityMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Strict-Transport-Security", "max-age=63072000")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://raw.githubusercontent.com; style-src * 'unsafe-inline'; script-src 'self'; font-src *; frame-src "+*frameSource+"; frame-ancestors "+*frameSource)
-		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("X-XSS-Protection", "1; mode=block")
-		w.Header().Set("Referrer-Policy", "same-origin")
-		w.Header().Set("X-Content-Type-Options", "nosniff")
-		next.ServeHTTP(w, req)
-	})
 }

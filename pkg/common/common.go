@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"io"
 	"math/rand"
+	"net/http"
 	"os"
+	"path"
 	"sync"
 	"time"
 )
@@ -65,4 +67,20 @@ func RandomByteArray(length int) []byte {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return b
+}
+
+// FallBackWrapper serves a file if found and else default to index.html
+type FallBackWrapper struct {
+	Assets http.FileSystem
+}
+
+// Open serves a file if found and else default to index.html
+func (i *FallBackWrapper) Open(name string) (http.File, error) {
+	file, err := i.Assets.Open(name)
+	// If the file is found but there is another error or the asked for file has an extension : return the file or error
+	if !os.IsNotExist(err) || path.Ext(name) != "" {
+		return file, err
+	}
+	// Else fall back to index.html
+	return i.Assets.Open("index.html")
 }
