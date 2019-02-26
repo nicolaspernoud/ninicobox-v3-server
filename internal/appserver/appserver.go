@@ -162,13 +162,13 @@ func makeHandler(r *app) http.Handler {
 				// Remove all jwt tokens from forwarded request
 				var JWTCookie string
 				for _, b := range req.Cookies() {
-					if b.Name == "jwt_token" {
+					if b.Name == "share_token" {
 						JWTCookie = b.Value
 						break
 					}
 				}
 				if JWTCookie != "" {
-					req.Header.Set("Cookie", strings.Replace(req.Header.Get("Cookie"), "jwt_token="+JWTCookie, "", 1)) // Delete from Cookie
+					req.Header.Set("Cookie", strings.Replace(req.Header.Get("Cookie"), "share_token="+JWTCookie, "", 1)) // Delete from Cookie
 				}
 			},
 			ModifyResponse: func(res *http.Response) error {

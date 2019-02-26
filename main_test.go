@@ -112,27 +112,31 @@ func CheckUser(t *testing.T, port string, wg *sync.WaitGroup) {
 	// Try to get a share token with an empty url
 	tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"","lifespan":7}`, http.StatusBadRequest, `url cannot be empty`)
 	// Try to get a share token for an user reserved resource
-	shareHeader := "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, shareTokenTarget, http.StatusOK, `eyJhbG`)
-	t.Logf("Got share token auth header: %v", shareHeader)
+	shareToken := tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, shareTokenTarget, http.StatusOK, `eyJhbG`)
+	t.Logf("Got share token: %v", shareToken)
+	// Try to use the share token in an header
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt", "Bearer "+shareToken, "", http.StatusForbidden, "CSRF protection triggered")
 	// Try to use the share token for the token path
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt", shareHeader, "", http.StatusOK, "Lorem ipsum")
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt?token="+shareToken, "", "", http.StatusOK, "Lorem ipsum")
+	// Try to use the share token to alter the ressource
+	tester.DoRequestOnServer(t, port, "PUT", "/api/files/usersrw/File users 01.txt?token="+shareToken, "", "new content", http.StatusMethodNotAllowed, "the share token can only be used for the GET method")
 	// Try to use the share token for a different path than the token path
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 02.txt", shareHeader, "", http.StatusForbidden, "the share token can only be used for the given path")
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 02.txt?token="+shareToken, "", "", http.StatusForbidden, "the share token can only be used for the given path")
 	// Try to get a share token for an admin reserved resource (it's possible but the token will not be usable)
-	shareHeader = "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"/api/files/adminsrw/File%20admins%2001.txt","lifespan":7}`, http.StatusOK, `eyJhbG`)
+	shareToken = tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"/api/files/adminsrw/File%20admins%2001.txt","lifespan":7}`, http.StatusOK, `eyJhbG`)
 	// Try to use the share token for the admin token path
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt", shareHeader, "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt?token="+shareToken, "", "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get an admin basic auth protected webdav ressource with user basic auth
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/basicauth/File admins 01.txt", "Basic "+base64.StdEncoding.EncodeToString([]byte("user:password")), "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get a share token for an allowed app hostname
-	shareHeader = "Bearer " + tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"securedreverseproxy.127.0.0.1.nip.io","lifespan":7}`, http.StatusOK, `eyJhbG`)
-	t.Logf("Got share header: %v", shareHeader)
+	shareToken = tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"securedreverseproxy.127.0.0.1.nip.io","lifespan":7}`, http.StatusOK, `eyJhbG`)
+	t.Logf("Got share token: %v", shareToken)
 	// Try to use the share token for the allowed app
-	tester.DoRequestOnServer(t, port, "GET", "securedreverseproxy.127.0.0.1.nip.io", shareHeader, "", http.StatusOK, "<!doctype html>\n<html>\n<head>\n    <title>Example Domain</title>")
+	tester.DoRequestOnServer(t, port, "GET", "securedreverseproxy.127.0.0.1.nip.io?token="+shareToken, "", "", http.StatusOK, "<!doctype html>\n<html>\n<head>\n    <title>Example Domain</title>")
 	// Try to use the share token for an admin only app
-	tester.DoRequestOnServer(t, port, "GET", "adminonlyproxy.127.0.0.1.nip.io", shareHeader, "", http.StatusForbidden, "the share token can only be used for the given host")
+	tester.DoRequestOnServer(t, port, "GET", "adminonlyproxy.127.0.0.1.nip.io?token="+shareToken, "", "", http.StatusForbidden, "the share token can only be used for the given host")
 	// Try to use the share token for an admin file
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt", shareHeader, "", http.StatusForbidden, "the share token can only be used for the given host")
+	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt?token="+shareToken, "", "", http.StatusForbidden, "the share token can only be used for the given host")
 }
 
 // === Try to access the resources as an admin ===

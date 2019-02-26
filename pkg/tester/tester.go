@@ -31,7 +31,12 @@ func DoRequestOnServer(t *testing.T, port string, method string, url string, aut
 	if strings.HasPrefix(url, "/") {
 		url = "http://localhost:" + port + url
 	} else {
-		url = "http://" + url + ":" + port
+		if strings.Contains(url, "?") {
+			parts := strings.Split(url, "?")
+			url = "http://" + parts[0] + ":" + port + "?" + parts[1]
+		} else {
+			url = "http://" + url + ":" + port
+		}
 	}
 	req, err := http.NewRequest(method, url, strings.NewReader(payload))
 	if err != nil {

@@ -21,11 +21,19 @@ const (
 	gB              = 1 << (10 * 3)
 )
 
-// JWTPayload represents the payload of a JWT
-type JWTPayload struct {
+// AuthToken represents a token identifying an user
+type AuthToken struct {
+	Login     string `json:"login"`
+	Name      string `json:"name,omitempty"`
+	Surname   string `json:"surname,omitempty"`
+	Role      string `json:"role"`
+	CSRFToken string `json:"csrftoken"`
+	jwt.StandardClaims
+}
+
+// ShareToken represents a token identifying an user
+type ShareToken struct {
 	Login            string `json:"login"`
-	Name             string `json:"name,omitempty"`
-	Surname          string `json:"surname,omitempty"`
 	Role             string `json:"role"`
 	URL              string `json:"url,omitempty"`              // For share token
 	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
