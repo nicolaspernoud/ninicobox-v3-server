@@ -285,6 +285,12 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 // OR an authorization header in the form `Bearer <JWT Token>`
 // OR a URL query paramter of the form https://example.com?token=<JWT token>
 func ExtractToken(r *http.Request) (token string, tokenType string, fromCookie bool, err error) {
+	// Try to get an share token from the query
+	jwtQuery := r.URL.Query().Get("token")
+	if jwtQuery != "" {
+		return jwtQuery, "share", false, nil
+	}
+
 	// Try to get an auth token from the cookie
 	jwtCookie, err := r.Cookie("auth_token")
 	if err == nil {
@@ -310,12 +316,6 @@ func ExtractToken(r *http.Request) (token string, tokenType string, fromCookie b
 			jwtHeader = strings.Split(string(decoded), ":")
 			return jwtHeader[1], "auth", false, nil
 		}
-	}
-
-	// Try to get an share token from the query
-	jwtQuery := r.URL.Query().Get("token")
-	if jwtQuery != "" {
-		return jwtQuery, "share", false, nil
 	}
 
 	return "", "", false, fmt.Errorf("no token found")
