@@ -160,6 +160,9 @@ func makeHandler(r *app) http.Handler {
 				}
 				req.Host = fwdTo
 				// Remove all jwt tokens from forwarded request
+				q := req.URL.Query()
+				q.Del("token") // Delete from query
+				req.URL.RawQuery = q.Encode()
 				var JWTCookie string
 				for _, b := range req.Cookies() {
 					if b.Name == "share_token" {

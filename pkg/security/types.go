@@ -21,23 +21,26 @@ const (
 	gB              = 1 << (10 * 3)
 )
 
+// CommonClaims represents the claims common to Auth and Share tokens
+type CommonClaims struct {
+	Login string `json:"login"`
+	Role  string `json:"role"`
+	jwt.StandardClaims
+}
+
 // AuthToken represents a token identifying an user
 type AuthToken struct {
-	Login     string `json:"login"`
+	CommonClaims
 	Name      string `json:"name,omitempty"`
 	Surname   string `json:"surname,omitempty"`
-	Role      string `json:"role"`
 	CSRFToken string `json:"csrftoken"`
-	jwt.StandardClaims
 }
 
 // ShareToken represents a token identifying an user
 type ShareToken struct {
-	Login            string `json:"login"`
-	Role             string `json:"role"`
+	CommonClaims
 	URL              string `json:"url,omitempty"`              // For share token
 	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
-	jwt.StandardClaims
 }
 
 // User represents an application user
