@@ -74,8 +74,6 @@ func Authenticate(w http.ResponseWriter, req *http.Request) {
 		log.Logger.Fatal(err)
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, AuthToken{
-		Name:      user.Name,
-		Surname:   user.Surname,
 		CSRFToken: CSRFToken,
 		CommonClaims: CommonClaims{
 			Login: user.Login,
@@ -184,7 +182,7 @@ func ValidateJWTMiddleware(next http.Handler, allowedRoles []string) http.Handle
 	})
 }
 
-func validateAuthToken(JWT string, allowedRoles []string, origin string, req *http.Request) (httpCode int, returnedClaims CommonClaims, err error) {
+func validateAuthToken(JWT string, allowedRoles []string, origin string, req *http.Request) (int, CommonClaims, error) {
 	token, err := jwt.ParseWithClaims(JWT, &AuthToken{}, checkJWT)
 	if err != nil {
 		return 403, CommonClaims{}, err
@@ -204,7 +202,7 @@ func validateAuthToken(JWT string, allowedRoles []string, origin string, req *ht
 	return 400, CommonClaims{}, errors.New("invalid authorization token")
 }
 
-func validateShareToken(JWT string, allowedRoles []string, req *http.Request) (httpCode int, returnedClaims CommonClaims, err error) {
+func validateShareToken(JWT string, allowedRoles []string, req *http.Request) (int, CommonClaims, error) {
 	token, err := jwt.ParseWithClaims(JWT, &ShareToken{}, checkJWT)
 	if err != nil {
 		return 403, CommonClaims{}, err
@@ -287,7 +285,8 @@ func ValidateBasicAuthMiddleware(next http.Handler, allowedRoles []string) http.
 // ExtractToken from a cookie
 // OR an authorization header in the form `Bearer <JWT Token>`
 // OR a URL query paramter of the form https://example.com?token=<JWT token>
-func ExtractToken(r *http.Request) (token string, tokenType string, origin string, err error) {
+// returns the token, a string indicating the token type, a string indicating where the token comes from, and an error
+func ExtractToken(r *http.Request) (string, string, string, error) {
 	// Try to get an share token from the query
 	jwtQuery := r.URL.Query().Get("token")
 	if jwtQuery != "" {

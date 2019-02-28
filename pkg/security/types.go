@@ -31,8 +31,6 @@ type CommonClaims struct {
 // AuthToken represents a token identifying an user
 type AuthToken struct {
 	CommonClaims
-	Name      string `json:"name,omitempty"`
-	Surname   string `json:"surname,omitempty"`
 	CSRFToken string `json:"csrftoken"`
 }
 
