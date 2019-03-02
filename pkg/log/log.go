@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -32,6 +33,16 @@ var (
 func init() {
 	// Initialize logger
 	Logger = log.New(os.Stdout, "", log.LstdFlags)
+}
+
+// SetFile set a file to log to instead of standard output
+func SetFile(file string) {
+	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	wrt := io.MultiWriter(os.Stdout, f)
+	Logger.SetOutput(wrt)
 }
 
 // GetCityAndCountryFromRequest returns a string containing the city and the contry where the request is from

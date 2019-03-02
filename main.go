@@ -20,11 +20,12 @@ import (
 
 var (
 	letsCacheDir = flag.String("letsencrypt_cache", "./letsencrypt_cache", "let's encrypt cache `directory`")
-	mainHostName = flag.String("hostname", "localhost", "Main hostname, default to localhost")
-	frameSource  = flag.String("framesource", "localhost", "Location from where iframes are allowed, default to localhost")
+	mainHostName = flag.String("hostname", "localhost", "Main hostname, defaults to localhost")
+	frameSource  = flag.String("framesource", "localhost", "Location from where iframes are allowed, defaults to localhost")
+	logFile      = flag.String("log_file", "", "Optional file to log to, defaults to no file logging")
 	debugMode    = flag.Bool("debug", false, "Debug mode, disable let's encrypt, enable CORS and more logging")
-	httpsPort    = flag.Int("https_port", 443, "HTTPS port to serve on (default to 443)")
-	httpPort     = flag.Int("http_port", 80, "HTTP port to serve on (default to 80), only used to get let's encrypt certificates")
+	httpsPort    = flag.Int("https_port", 443, "HTTPS port to serve on (defaults to 443)")
+	httpPort     = flag.Int("http_port", 80, "HTTP port to serve on (defaults to 80), only used to get let's encrypt certificates")
 
 	adminAuth = security.AuthenticationMiddleware{
 		AllowedRoles: []string{"admin"},
@@ -37,6 +38,9 @@ func main() {
 	flag.Parse()
 
 	// Initialize logger
+	if *logFile != "" {
+		log.SetFile(*logFile)
+	}
 	log.Logger.Println("Server is starting...")
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
