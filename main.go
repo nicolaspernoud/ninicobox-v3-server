@@ -6,7 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
 	"./internal/appserver"
@@ -40,8 +43,17 @@ func main() {
 	// Initialize logger
 	if *logFile != "" {
 		log.SetFile(*logFile)
+		// Properly close the log on exit
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		go func() {
+			<-sigs
+			log.Logger.Println("--- Closing log ---")
+			log.CloseFile()
+			os.Exit(0)
+		}()
 	}
-	log.Logger.Println("Server is starting...")
+	log.Logger.Println("--- Server is starting ---")
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
 	// Create the server
@@ -71,7 +83,6 @@ func main() {
 		go http.ListenAndServe(":"+strconv.Itoa(*httpPort), certManager.HTTPHandler(nil))
 		server.ListenAndServeTLS("", "")
 	}
-
 }
 
 func createRootMux(port int, frameSource *string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {

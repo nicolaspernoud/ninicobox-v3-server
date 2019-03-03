@@ -28,6 +28,7 @@ var (
 		content: make(map[string]string),
 	}
 	ipDbLocation = "./ipgeodatabase/GeoLite2-City.mmdb"
+	f            *os.File
 )
 
 func init() {
@@ -37,12 +38,18 @@ func init() {
 
 // SetFile set a file to log to instead of standard output
 func SetFile(file string) {
-	f, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	var err error
+	f, err = os.OpenFile(file, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 	}
 	wrt := io.MultiWriter(os.Stdout, f)
 	Logger.SetOutput(wrt)
+}
+
+// CloseFile close the log file on exit
+func CloseFile() {
+	f.Close()
 }
 
 // GetCityAndCountryFromRequest returns a string containing the city and the contry where the request is from
