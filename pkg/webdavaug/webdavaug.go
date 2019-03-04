@@ -105,11 +105,13 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func webdavLogger(r *http.Request, err error) {
-	user := security.UserLoginFromContext(r.Context())
-	if err != nil {
-		log.Logger.Printf("| %v | Webdav access error : [%s] %s, %s | %v | %v", user, r.Method, r.URL, err, r.RemoteAddr, log.GetCityAndCountryFromRequest(r))
-	} else {
-		log.Logger.Printf("| %v | Webdav access : [%s] %s | %v | %v", user, r.Method, r.URL.Path, r.RemoteAddr, log.GetCityAndCountryFromRequest(r))
+	if r.Method != "PROPFIND" && r.Method != "OPTIONS" {
+		user := security.UserLoginFromContext(r.Context())
+		if err != nil {
+			log.Logger.Printf("| %v | Webdav access error : [%s] %s, %s | %v | %v", user, r.Method, r.URL, err, r.RemoteAddr, log.GetCityAndCountryFromRequest(r))
+		} else {
+			log.Logger.Printf("| %v | Webdav access : [%s] %s | %v | %v", user, r.Method, r.URL.Path, r.RemoteAddr, log.GetCityAndCountryFromRequest(r))
+		}
 	}
 }
 
