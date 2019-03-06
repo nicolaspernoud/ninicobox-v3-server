@@ -97,3 +97,13 @@ func (i *FallBackWrapper) Open(name string) (http.File, error) {
 	// Else fall back to index.html
 	return i.Assets.Open("index.html")
 }
+
+// Contains works out if a string slice contains a given string element
+func Contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}

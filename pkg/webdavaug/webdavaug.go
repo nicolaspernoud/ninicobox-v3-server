@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"../../pkg/common"
 	"../../pkg/log"
 	"../../pkg/security"
 	"golang.org/x/net/webdav"
@@ -105,7 +106,7 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func webdavLogger(r *http.Request, err error) {
-	if r.Method != "PROPFIND" && r.Method != "OPTIONS" {
+	if !common.Contains([]string{"PROPFIND", "OPTIONS", "LOCK", "UNLOCK"}, r.Method) {
 		user := security.UserLoginFromContext(r.Context())
 		if err != nil {
 			log.Logger.Printf("| %v | Webdav access error : [%s] %s, %s | %v | %v", user, r.Method, r.URL, err, r.RemoteAddr, log.GetCityAndCountryFromRequest(r))
