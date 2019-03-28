@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -42,9 +43,13 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 		for _, filesacl := range filesacls {
 			for _, allowedRole := range filesacl.Roles {
 				if !filesacl.BasicAuth && (role == allowedRole || allowedRole == "all") {
-					usage := du.NewDiskUsage(filesacl.Directory)
-					filesacl.UsedGB = usage.Used() / gB
-					filesacl.TotalGB = usage.Size() / gB
+					usage, err := du.NewDiskUsage(filesacl.Directory)
+					if err != nil {
+						fmt.Printf("Error getting disk usage: %v\n", err)
+					} else {
+						filesacl.UsedGB = usage.Used() / gB
+						filesacl.TotalGB = usage.Size() / gB
+					}
 					sentfilesacls = append(sentfilesacls, filesacl)
 					break
 				}
