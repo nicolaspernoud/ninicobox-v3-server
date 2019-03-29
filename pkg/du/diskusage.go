@@ -3,22 +3,35 @@
 package du
 
 import (
-	"syscall"
+	"errors"
+	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 //DiskUsage is an object holding a disk usage
 type DiskUsage struct {
-	stat *syscall.Statfs_t
+	stat *unix.Statfs_t
 }
 
 // NewDiskUsage returns an object holding the disk usage of volumePath assuming volumePath is a valid path
 func NewDiskUsage(volumePath string) (*DiskUsage, error) {
-	var stat syscall.Statfs_t
-	err := syscall.Statfs(volumePath, &stat)
-	if err != nil {
-		return &DiskUsage{}, err
+	var stat unix.Statfs_t
+	ch := make(chan error)
+	go func() {
+		// The closure does a non-blocking send, which it achieves by using the send operation in select statement with a default case.
+		// If the send cannot go through immediately the default case will be selected (https://blog.golang.org/go-concurrency-patterns-timing-out-and).
+		select {
+		case ch <- unix.Statfs(volumePath, &stat):
+		default:
+		}
+	}()
+	select {
+	case err := <-ch:
+		return &DiskUsage{&stat}, err
+	case <-time.After(5 * time.Second):
+		return &DiskUsage{&stat}, errors.New("timeout getting disk usage")
 	}
-	return &DiskUsage{&stat}, nil
 }
 
 // Free returns the total free bytes on file system
