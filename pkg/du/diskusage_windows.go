@@ -36,7 +36,7 @@ func NewDiskUsage(volumePath string) (*DiskUsage, error) {
 	select {
 	case err := <-ch:
 		return &du, err
-	case <-time.After(2 * time.Second):
+	case <-time.After(5 * time.Second):
 		return &du, errors.New("timeout getting disk usage")
 	}
 }

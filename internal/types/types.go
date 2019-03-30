@@ -49,8 +49,8 @@ func SendFilesACLs(w http.ResponseWriter, req *http.Request) {
 					} else {
 						filesacl.UsedGB = usage.Used() / gB
 						filesacl.TotalGB = usage.Size() / gB
+						sentfilesacls = append(sentfilesacls, filesacl)
 					}
-					sentfilesacls = append(sentfilesacls, filesacl)
 					break
 				}
 			}
@@ -106,7 +106,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.18",
+		ServerVersion: "3.1.19",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
