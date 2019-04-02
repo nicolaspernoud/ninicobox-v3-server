@@ -106,8 +106,8 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func webdavLogger(r *http.Request, err error) {
-	if !common.Contains([]string{"PROPFIND", "OPTIONS", "LOCK", "UNLOCK"}, r.Method) {
-		user := security.UserLoginFromContext(r.Context())
+	user := security.UserLoginFromContext(r.Context())
+	if !common.Contains([]string{"PROPFIND", "OPTIONS", "LOCK", "UNLOCK", "GET"}, r.Method) || strings.Contains(user, "_share_") {
 		if err != nil {
 			log.Logger.Printf("| %v | Webdav access error : [%s] %s, %s | %v | %v", user, r.Method, r.URL, err, r.RemoteAddr, log.GetCityAndCountryFromRequest(r))
 		} else {
