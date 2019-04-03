@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"../../pkg/common"
+	"nicolaspernoud/ninicobox-v3-server/pkg/common"
 	jwt "github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
 )

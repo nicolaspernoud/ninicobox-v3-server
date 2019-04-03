@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"../../pkg/common"
-	"../../pkg/log"
+	"nicolaspernoud/ninicobox-v3-server/pkg/common"
+	"nicolaspernoud/ninicobox-v3-server/pkg/log"
 	jwt "github.com/dgrijalva/jwt-go"
 )
 

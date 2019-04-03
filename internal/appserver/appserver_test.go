@@ -9,9 +9,9 @@ import (
 	"os"
 	"testing"
 
-	"../../pkg/security"
-	"../../pkg/tester"
-	"../types"
+	"nicolaspernoud/ninicobox-v3-server/pkg/security"
+	"nicolaspernoud/ninicobox-v3-server/pkg/tester"
+	"nicolaspernoud/ninicobox-v3-server/internal/types"
 )
 
 func TestServer(t *testing.T) {

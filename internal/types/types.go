@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"../../pkg/common"
-	"../../pkg/du"
-	"../../pkg/security"
+	"nicolaspernoud/ninicobox-v3-server/pkg/common"
+	"nicolaspernoud/ninicobox-v3-server/pkg/du"
+	"nicolaspernoud/ninicobox-v3-server/pkg/security"
 )
 
 const (
@@ -106,7 +106,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.20",
+		ServerVersion: "3.1.21",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
