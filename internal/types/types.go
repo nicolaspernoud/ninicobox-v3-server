@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+	"regexp"
 
 	"nicolaspernoud/ninicobox-v3-server/pkg/common"
 	"nicolaspernoud/ninicobox-v3-server/pkg/du"
@@ -106,7 +106,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.21",
+		ServerVersion: "3.1.22",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
@@ -170,13 +170,9 @@ func SetApps(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// Strip schemes from hosts
+	r := regexp.MustCompile(`https?:\/\/`)
 	for key, val := range apps {
-		if strings.HasPrefix(val.Host, "http://") {
-			apps[key].Host = strings.TrimPrefix(val.Host, "http://")
-		}
-		if strings.HasPrefix(val.Host, "https://") {
-			apps[key].Host = strings.TrimPrefix(val.Host, "https://")
-		}
+		apps[key].Host = r.ReplaceAllString(val.Host, "")
 	}
 	err = common.Save("./configs/apps.json", &apps)
 	if err != nil {

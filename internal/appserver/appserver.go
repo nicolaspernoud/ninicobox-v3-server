@@ -8,6 +8,7 @@ package appserver
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -145,6 +146,9 @@ func makeHandler(r *app) http.Handler {
 	var handler http.Handler
 	if fwdTo := r.ForwardTo; r.IsProxy && fwdTo != "" {
 		handler = &httputil.ReverseProxy{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
 			Director: func(req *http.Request) {
 				// Set the correct scheme to the request
 				if !strings.HasPrefix(fwdTo, "http") {
