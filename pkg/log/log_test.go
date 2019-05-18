@@ -39,14 +39,14 @@ func TestGetCityAndCountryFromRequest(t *testing.T) {
 			args: args{
 				req: requestFromLondon,
 			},
-			want: "Londres, Royaume-Uni",
+			want: "Londres, Royaume-Uni.",
 		},
 		{
 			name: "Request from london, again",
 			args: args{
 				req: requestFromLondon,
 			},
-			want: "Londres, Royaume-Uni.",
+			want: "Londres, Royaume-Uni",
 		},
 		{
 			name: "Request with empty ip",
