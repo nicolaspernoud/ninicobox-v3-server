@@ -46,7 +46,7 @@ func TestGetCityAndCountryFromRequest(t *testing.T) {
 			args: args{
 				req: requestFromLondon,
 			},
-			want: "Londres, Royaume-Uni (from cache)",
+			want: "Londres, Royaume-Uni.",
 		},
 		{
 			name: "Request with empty ip",

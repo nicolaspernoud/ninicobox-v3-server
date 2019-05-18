@@ -53,6 +53,7 @@ func CloseFile() {
 }
 
 // GetCityAndCountryFromRequest returns a string containing the city and the contry where the request is from
+// If the city is fetched from the built-in memory cache, it is suffixed by a dot (.)
 func GetCityAndCountryFromRequest(req *http.Request) string {
 	// If the request remote adress is local return "localhost"
 	if req.RemoteAddr == "" || strings.HasPrefix(req.RemoteAddr, "[::1]") || strings.HasPrefix(req.RemoteAddr, "127.0.0.1") {
@@ -75,7 +76,7 @@ func GetCityAndCountryFromRequest(req *http.Request) string {
 	// First check if the ip is in memory cache
 	locFromCache, ok := ipcache.content[address]
 	if ok {
-		return locFromCache + " (from cache)"
+		return locFromCache + "."
 	}
 
 	// If not open the maxmind database, search the ip and update the cache
