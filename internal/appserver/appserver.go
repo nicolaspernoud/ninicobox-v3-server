@@ -114,7 +114,7 @@ func (s *Server) HostPolicy(ctx context.Context, host string) error {
 
 	// If not check if the host is in allowed apps
 	for _, app := range s.apps {
-		if host == app.Host {
+		if (host == app.Host) || (strings.Contains(app.Host, "*") && strings.HasSuffix(host, strings.TrimPrefix(app.Host, "*."))) {
 			return nil
 		}
 	}
