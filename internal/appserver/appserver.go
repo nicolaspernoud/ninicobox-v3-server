@@ -144,7 +144,7 @@ func parseApps(file string) ([]*app, error) {
 // makeHandler constructs the appropriate Handler for the given app.
 func makeHandler(r *app) http.Handler {
 	var handler http.Handler
-	if fwdTo := r.ForwardTo; r.IsProxy && fwdTo != "" {
+	if fwdTo := strings.TrimPrefix(r.ForwardTo, "*."); r.IsProxy && fwdTo != "" {
 		handler = &httputil.ReverseProxy{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -153,16 +153,18 @@ func makeHandler(r *app) http.Handler {
 				// Set the correct scheme to the request
 				if !strings.HasPrefix(fwdTo, "http") {
 					req.URL.Scheme = "http"
-					req.URL.Host = fwdTo
 				} else {
 					fwdToSplit := strings.Split(fwdTo, "://")
 					req.URL.Scheme = fwdToSplit[0]
-					req.URL.Host = fwdToSplit[1]
+					fwdTo = fwdToSplit[1]
+				}
+				if !strings.HasSuffix(req.Host, fwdTo) {
+					req.URL.Host = fwdTo
+					req.Host = fwdTo
 				}
 				if r.Login != "" && r.Password != "" {
 					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
 				}
-				req.Host = fwdTo
 				// Remove all jwt tokens from forwarded request
 				q := req.URL.Query()
 				q.Del("token") // Delete from query
