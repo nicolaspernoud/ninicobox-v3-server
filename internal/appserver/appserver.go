@@ -67,14 +67,14 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handler(req *http.Request) http.Handler {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	h := req.Host
+	host := req.Host
 	// Some clients include a port in the request host; strip it.
-	if i := strings.Index(h, ":"); i >= 0 {
-		h = h[:i]
+	if i := strings.Index(host, ":"); i >= 0 {
+		host = host[:i]
 	}
-	for _, r := range s.apps {
-		if h == r.Host || strings.HasSuffix(h, "."+r.Host) {
-			return r.handler
+	for _, app := range s.apps {
+		if host == app.Host || strings.HasSuffix(host, "."+strings.TrimPrefix(app.Host, "*.")) {
+			return app.handler
 		}
 	}
 	return nil
