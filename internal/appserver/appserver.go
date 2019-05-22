@@ -142,9 +142,10 @@ func parseApps(file string) ([]*app, error) {
 }
 
 // makeHandler constructs the appropriate Handler for the given app.
-func makeHandler(r *app) http.Handler {
+func makeHandler(app *app) http.Handler {
 	var handler http.Handler
-	if fwdTo := strings.TrimPrefix(r.ForwardTo, "*."); r.IsProxy && fwdTo != "" {
+	if fwdTo := app.ForwardTo; app.IsProxy && fwdTo != "" {
+		fwdFrom := strings.TrimPrefix(app.Host, "*.")
 		handler = &httputil.ReverseProxy{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
@@ -153,17 +154,19 @@ func makeHandler(r *app) http.Handler {
 				// Set the correct scheme to the request
 				if !strings.HasPrefix(fwdTo, "http") {
 					req.URL.Scheme = "http"
+					req.URL.Host = fwdTo
 				} else {
 					fwdToSplit := strings.Split(fwdTo, "://")
 					req.URL.Scheme = fwdToSplit[0]
-					fwdTo = fwdToSplit[1]
+					req.URL.Host = fwdToSplit[1]
 				}
-				if !strings.HasSuffix(req.Host, fwdTo) {
-					req.URL.Host = fwdTo
+
+				// Rewrite host header if the proxy is not to a local service
+				if !strings.Contains(fwdTo, ":") {
 					req.Host = fwdTo
 				}
-				if r.Login != "" && r.Password != "" {
-					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(r.Login+":"+r.Password)))
+				if app.Login != "" && app.Password != "" {
+					req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(app.Login+":"+app.Password)))
 				}
 				// Remove all jwt tokens from forwarded request
 				q := req.URL.Query()
@@ -181,14 +184,12 @@ func makeHandler(r *app) http.Handler {
 				}
 			},
 			ModifyResponse: func(res *http.Response) error {
-				// Alter the redirect location
 				u, err := res.Location()
 				if err == nil {
 					u.Scheme = "https"
-					if strings.HasSuffix(u.Host, r.ForwardTo) { // Then the redirect is global
-						u.Host = strings.Replace(u.Host, r.ForwardTo, r.Host, 1)
-					} else { // Or is local
-						u.Host = r.Host + ":" + strconv.Itoa(port)
+					// Alter the redirect location if the redirection is not relative to the exposed host
+					if !strings.Contains(u.Host, fwdFrom) {
+						u.Host = fwdFrom + ":" + strconv.Itoa(port)
 					}
 					res.Header.Set("Location", u.String())
 				}
@@ -197,11 +198,11 @@ func makeHandler(r *app) http.Handler {
 				return nil
 			},
 		}
-	} else if d := r.Serve; !r.IsProxy && d != "" {
+	} else if d := app.Serve; !app.IsProxy && d != "" {
 		handler = http.FileServer(http.Dir(d))
 	}
-	if !r.Secured || handler == nil {
+	if !app.Secured || handler == nil {
 		return handler
 	}
-	return security.ValidateJWTMiddleware(handler, r.Roles)
+	return security.ValidateJWTMiddleware(handler, app.Roles)
 }

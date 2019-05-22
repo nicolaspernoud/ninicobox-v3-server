@@ -32,18 +32,18 @@ func TestServer(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(testHandler))
 	defer target.Close()
 
-	redirectLocalTarget := httptest.NewServer(http.HandlerFunc(testRedirectLocalHandler))
-	defer redirectLocalTarget.Close()
+	redirectAbsoluteTarget := httptest.NewServer(http.HandlerFunc(testAbsoluteRedirectHandler))
+	defer redirectAbsoluteTarget.Close()
 
-	redirectGlobalTarget := httptest.NewServer(http.HandlerFunc(testRedirectGlobalHandler))
-	defer redirectGlobalTarget.Close()
+	redirectRelativeTarget := httptest.NewServer(http.HandlerFunc(testRelativeRedirectHandler))
+	defer redirectRelativeTarget.Close()
 
 	// Create apps
 	appFile := writeApps([]*app{
 		{App: types.App{Host: "example.com", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
 		{App: types.App{Host: "example.org", IsProxy: false, Serve: "testdata"}},
-		{App: types.App{Host: "example.localredirect", IsProxy: true, ForwardTo: redirectLocalTarget.Listener.Addr().String()}},
-		{App: types.App{Host: "example.globalredirect", IsProxy: true, ForwardTo: redirectGlobalTarget.Listener.Addr().String()}},
+		{App: types.App{Host: "example.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
+		{App: types.App{Host: "example.relativeredirect", IsProxy: true, ForwardTo: redirectRelativeTarget.Listener.Addr().String()}},
 		{App: types.App{Host: "example.securedproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin", "user"}}},
 		{App: types.App{Host: "example.adminsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin"}}},
 		{App: types.App{Host: "example.emptyrolesproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{}}},
@@ -107,8 +107,8 @@ func TestServer(t *testing.T) {
 		code     int
 		location string
 	}{
-		{"http://example.localredirect/", 302, "https://example.localredirect:443"},
-		{"http://example.globalredirect/", 302, "https://global.example.globalredirect"},
+		{"http://example.absoluteredirect/", 302, "https://example.absoluteredirect:443"},
+		{"http://example.relativeredirect/", 302, "https://relative.redirect.example.relativeredirect"},
 	}
 
 	// Run redirect tests
@@ -130,12 +130,14 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func testRedirectLocalHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "http://a.local.adress", http.StatusFound)
+// Redirect is bad when is made absolute, regardless of the host header
+func testAbsoluteRedirectHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://absolute.redirect.bad", http.StatusFound)
 }
 
-func testRedirectGlobalHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://global."+r.Host, http.StatusFound)
+// Redirect is good when is redirect relative to the host header
+func testRelativeRedirectHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://relative.redirect."+r.Host, http.StatusFound)
 }
 
 func writeApps(apps []*app) (name string) {
