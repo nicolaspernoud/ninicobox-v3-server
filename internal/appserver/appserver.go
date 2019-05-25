@@ -73,7 +73,7 @@ func (s *Server) handler(req *http.Request) http.Handler {
 		host = host[:i]
 	}
 	for _, app := range s.apps {
-		if host == app.Host || strings.HasSuffix(host, "."+strings.TrimPrefix(app.Host, "*.")) {
+		if host == app.Host || strings.HasSuffix(host, "."+strings.TrimPrefix(app.Host, "*.")) || host == strings.TrimPrefix(app.Host, "*.") {
 			return app.handler
 		}
 	}

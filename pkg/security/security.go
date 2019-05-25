@@ -14,6 +14,7 @@ import (
 
 	"nicolaspernoud/ninicobox-v3-server/pkg/common"
 	"nicolaspernoud/ninicobox-v3-server/pkg/log"
+
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
@@ -131,7 +132,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 				IssuedAt:  now().Unix(),
 			},
 		},
-		URL:              wantedToken.URL,
+		URL:              strings.TrimPrefix(wantedToken.URL, "*."),
 		SharingUserLogin: req.Context().Value(ContextLogin).(string),
 	})
 	tokenString, err := token.SignedString(jWTSignature)
