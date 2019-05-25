@@ -40,16 +40,17 @@ func TestServer(t *testing.T) {
 
 	// Create apps
 	appFile := writeApps([]*app{
-		{App: types.App{Host: "example.com", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
-		{App: types.App{Host: "example.org", IsProxy: false, Serve: "testdata"}},
-		{App: types.App{Host: "example.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
-		{App: types.App{Host: "example.relativeredirect", IsProxy: true, ForwardTo: redirectRelativeTarget.Listener.Addr().String()}},
-		{App: types.App{Host: "example.securedproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin", "user"}}},
-		{App: types.App{Host: "example.adminsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin"}}},
-		{App: types.App{Host: "example.emptyrolesproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{}}},
-		{App: types.App{Host: "example.emptyroleproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{""}}},
-		{App: types.App{Host: "example.securedstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin", "user"}}},
-		{App: types.App{Host: "example.adminsecuredstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin"}}},
+		{App: types.App{Host: "test.unsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
+		{App: types.App{Host: "*.test.wildcard", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
+		{App: types.App{Host: "test.unsecuredstatic", IsProxy: false, Serve: "testdata"}},
+		{App: types.App{Host: "test.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
+		{App: types.App{Host: "test.relativeredirect", IsProxy: true, ForwardTo: redirectRelativeTarget.Listener.Addr().String()}},
+		{App: types.App{Host: "test.securedproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin", "user"}}},
+		{App: types.App{Host: "test.adminsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin"}}},
+		{App: types.App{Host: "test.emptyrolesproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{}}},
+		{App: types.App{Host: "test.emptyroleproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{""}}},
+		{App: types.App{Host: "test.securedstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin", "user"}}},
+		{App: types.App{Host: "test.adminsecuredstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin"}}},
 	})
 	defer os.Remove(appFile)
 
@@ -65,35 +66,37 @@ func TestServer(t *testing.T) {
 		code       int
 		body       string
 	}{
-		{"http://example.com/", "", 200, "OK"},
-		{"http://foo.example.com/", "", 200, "OK"},
-		{"http://example.org/", "", 200, "contents of index.html"},
-		{"http://example.net/", "", 404, "Not found."},
-		{"http://fooexample.com/", "", 404, "Not found."},
-		{"http://example.securedproxy/", "", 401, "no token found"},
-		{"http://example.securedproxy/", wrongAuthHeader, 403, "signature is invalid"},
-		{"http://example.securedproxy/", userHeader, 200, "OK"},
-		{"http://example.securedproxy/", adminHeader, 200, "OK"},
-		{"http://example.adminsecuredproxy/", "", 401, "no token found"},
-		{"http://example.adminsecuredproxy/", wrongAuthHeader, 403, "signature is invalid"},
-		{"http://example.adminsecuredproxy/", userHeader, 403, "user has role user, which is not in allowed roles ([admin])"},
-		{"http://example.adminsecuredproxy/", adminHeader, 200, "OK"},
-		{"http://example.emptyrolesproxy/", "", 401, "no token found"},
-		{"http://example.emptyrolesproxy/", wrongAuthHeader, 403, "signature is invalid"},
-		{"http://example.emptyrolesproxy/", userHeader, 403, "user has role user, which is not in allowed roles ([])"},
-		{"http://example.emptyrolesproxy/", adminHeader, 403, "user has role admin, which is not in allowed roles ([])"},
-		{"http://example.emptyroleproxy/", "", 401, "no token found"},
-		{"http://example.emptyroleproxy/", wrongAuthHeader, 403, "signature is invalid"},
-		{"http://example.emptyroleproxy/", userHeader, 403, "user has role user, which is not in allowed roles ([])"},
-		{"http://example.emptyroleproxy/", adminHeader, 403, "user has role admin, which is not in allowed roles ([])"},
-		{"http://example.securedstatic/", "", 401, "no token found"},
-		{"http://example.securedstatic/", wrongAuthHeader, 403, "signature is invalid"},
-		{"http://example.securedstatic/", userHeader, 200, "contents of index.html"},
-		{"http://example.securedstatic/", adminHeader, 200, "contents of index.html"},
-		{"http://example.adminsecuredstatic/", "", 401, "no token found"},
-		{"http://example.adminsecuredstatic/", wrongAuthHeader, 403, "signature is invalid"},
-		{"http://example.adminsecuredstatic/", userHeader, 403, "user has role user, which is not in allowed roles ([admin])"},
-		{"http://example.adminsecuredstatic/", adminHeader, 200, "contents of index.html"},
+		{"http://test.unsecuredproxy/", "", 200, "OK"},
+		{"http://foo.test.unsecuredproxy/", "", 404, "Not found."},
+		{"http://footest.unsecuredproxy/", "", 404, "Not found."},
+		{"http://test.wildcard/", "", 200, "OK"},
+		{"http://foo.test.wildcard/", "", 200, "OK"},
+		{"http://test.unsecuredstatic/", "", 200, "contents of index.html"},
+		{"http://test.net/", "", 404, "Not found."},
+		{"http://test.securedproxy/", "", 401, "no token found"},
+		{"http://test.securedproxy/", wrongAuthHeader, 403, "signature is invalid"},
+		{"http://test.securedproxy/", userHeader, 200, "OK"},
+		{"http://test.securedproxy/", adminHeader, 200, "OK"},
+		{"http://test.adminsecuredproxy/", "", 401, "no token found"},
+		{"http://test.adminsecuredproxy/", wrongAuthHeader, 403, "signature is invalid"},
+		{"http://test.adminsecuredproxy/", userHeader, 403, "user has role user, which is not in allowed roles ([admin])"},
+		{"http://test.adminsecuredproxy/", adminHeader, 200, "OK"},
+		{"http://test.emptyrolesproxy/", "", 401, "no token found"},
+		{"http://test.emptyrolesproxy/", wrongAuthHeader, 403, "signature is invalid"},
+		{"http://test.emptyrolesproxy/", userHeader, 403, "user has role user, which is not in allowed roles ([])"},
+		{"http://test.emptyrolesproxy/", adminHeader, 403, "user has role admin, which is not in allowed roles ([])"},
+		{"http://test.emptyroleproxy/", "", 401, "no token found"},
+		{"http://test.emptyroleproxy/", wrongAuthHeader, 403, "signature is invalid"},
+		{"http://test.emptyroleproxy/", userHeader, 403, "user has role user, which is not in allowed roles ([])"},
+		{"http://test.emptyroleproxy/", adminHeader, 403, "user has role admin, which is not in allowed roles ([])"},
+		{"http://test.securedstatic/", "", 401, "no token found"},
+		{"http://test.securedstatic/", wrongAuthHeader, 403, "signature is invalid"},
+		{"http://test.securedstatic/", userHeader, 200, "contents of index.html"},
+		{"http://test.securedstatic/", adminHeader, 200, "contents of index.html"},
+		{"http://test.adminsecuredstatic/", "", 401, "no token found"},
+		{"http://test.adminsecuredstatic/", wrongAuthHeader, 403, "signature is invalid"},
+		{"http://test.adminsecuredstatic/", userHeader, 403, "user has role user, which is not in allowed roles ([admin])"},
+		{"http://test.adminsecuredstatic/", adminHeader, 200, "contents of index.html"},
 	}
 
 	// Run tests
@@ -107,8 +110,8 @@ func TestServer(t *testing.T) {
 		code     int
 		location string
 	}{
-		{"http://example.absoluteredirect/", 302, "https://example.absoluteredirect:443"},
-		{"http://example.relativeredirect/", 302, "https://relative.redirect.example.relativeredirect"},
+		{"http://test.absoluteredirect/", 302, "https://test.absoluteredirect:443"},
+		{"http://test.relativeredirect/", 302, "https://relative.redirect.test.relativeredirect"},
 	}
 
 	// Run redirect tests
