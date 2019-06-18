@@ -12,13 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/appserver"
-	"nicolaspernoud/ninicobox-v3-server/internal/types"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/appserver"
+	"github.com/nicolaspernoud/ninicobox-v3-server/internal/types"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/common"
-	"nicolaspernoud/ninicobox-v3-server/pkg/log"
-	"nicolaspernoud/ninicobox-v3-server/pkg/security"
-	"nicolaspernoud/ninicobox-v3-server/pkg/webdavaug"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/log"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/webdavaug"
 
 	"golang.org/x/crypto/acme/autocert"
 )

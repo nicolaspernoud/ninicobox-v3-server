@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/common"
-	"nicolaspernoud/ninicobox-v3-server/pkg/log"
-	"nicolaspernoud/ninicobox-v3-server/pkg/security"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/log"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
 
 	"golang.org/x/net/webdav"
 )

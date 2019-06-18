@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/security"
-	"nicolaspernoud/ninicobox-v3-server/pkg/tester"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/tester"
 )
 
 func TestServer(t *testing.T) {

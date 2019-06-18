@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/security"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
 )
 
 var port int

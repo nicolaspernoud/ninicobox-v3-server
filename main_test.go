@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/tester"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/tester"
 )
 
 var (

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/common"
-	"nicolaspernoud/ninicobox-v3-server/pkg/tester"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/tester"
 )
 
 func TestMatchUser(t *testing.T) {

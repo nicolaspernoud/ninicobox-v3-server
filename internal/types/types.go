@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"regexp"
 
-	"nicolaspernoud/ninicobox-v3-server/pkg/appserver"
-	"nicolaspernoud/ninicobox-v3-server/pkg/common"
-	"nicolaspernoud/ninicobox-v3-server/pkg/du"
-	"nicolaspernoud/ninicobox-v3-server/pkg/security"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/appserver"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/du"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
 )
 
 const (
