@@ -11,7 +11,6 @@ import (
 
 	"nicolaspernoud/ninicobox-v3-server/pkg/security"
 	"nicolaspernoud/ninicobox-v3-server/pkg/tester"
-	"nicolaspernoud/ninicobox-v3-server/internal/types"
 )
 
 func TestServer(t *testing.T) {
@@ -40,17 +39,17 @@ func TestServer(t *testing.T) {
 
 	// Create apps
 	appFile := writeApps([]*app{
-		{App: types.App{Host: "test.unsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
-		{App: types.App{Host: "*.test.wildcard", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
-		{App: types.App{Host: "test.unsecuredstatic", IsProxy: false, Serve: "testdata"}},
-		{App: types.App{Host: "test.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
-		{App: types.App{Host: "test.relativeredirect", IsProxy: true, ForwardTo: redirectRelativeTarget.Listener.Addr().String()}},
-		{App: types.App{Host: "test.securedproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin", "user"}}},
-		{App: types.App{Host: "test.adminsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin"}}},
-		{App: types.App{Host: "test.emptyrolesproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{}}},
-		{App: types.App{Host: "test.emptyroleproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{""}}},
-		{App: types.App{Host: "test.securedstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin", "user"}}},
-		{App: types.App{Host: "test.adminsecuredstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin"}}},
+		{App: App{Host: "test.unsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
+		{App: App{Host: "*.test.wildcard", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
+		{App: App{Host: "test.unsecuredstatic", IsProxy: false, Serve: "testdata"}},
+		{App: App{Host: "test.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
+		{App: App{Host: "test.relativeredirect", IsProxy: true, ForwardTo: redirectRelativeTarget.Listener.Addr().String()}},
+		{App: App{Host: "test.securedproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin", "user"}}},
+		{App: App{Host: "test.adminsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin"}}},
+		{App: App{Host: "test.emptyrolesproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{}}},
+		{App: App{Host: "test.emptyroleproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{""}}},
+		{App: App{Host: "test.securedstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin", "user"}}},
+		{App: App{Host: "test.adminsecuredstatic", IsProxy: false, Serve: "testdata", Secured: true, Roles: []string{"admin"}}},
 	})
 	defer os.Remove(appFile)
 

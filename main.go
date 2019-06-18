@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"nicolaspernoud/ninicobox-v3-server/internal/appserver"
+	"nicolaspernoud/ninicobox-v3-server/pkg/appserver"
 	"nicolaspernoud/ninicobox-v3-server/internal/types"
 
 	"nicolaspernoud/ninicobox-v3-server/pkg/common"
