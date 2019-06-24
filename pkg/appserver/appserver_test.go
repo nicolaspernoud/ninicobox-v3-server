@@ -53,7 +53,7 @@ func TestServer(t *testing.T) {
 	})
 	defer os.Remove(appFile)
 
-	s, err := NewServer(appFile, 443, "localhost", "localhost")
+	s, err := NewServer(appFile, 443, "localhost", "localhost", security.ValidateJWTMiddleware)
 	if err != nil {
 		t.Fatal(err)
 	}

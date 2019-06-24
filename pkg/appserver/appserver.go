@@ -20,13 +20,17 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
 )
 
-var port int
-var frameSource string
-var mainHostName string
+var (
+	port         int
+	frameSource  string
+	mainHostName string
+	authz        authzFunc
+)
+
+// authzFunc creates a middleware to allow access according to a role array
+type authzFunc func(http.Handler, []string) http.Handler
 
 // Server implements an http.Handler that acts as either a reverse proxy or a simple file server, as determined by a rule set.
 type Server struct {
@@ -53,10 +57,11 @@ type app struct {
 }
 
 // NewServer constructs a Server that reads apps from file
-func NewServer(file string, portFromMain int, frameSourceFromMain string, mainHostNameFromMain string) (*Server, error) {
+func NewServer(file string, portFromMain int, frameSourceFromMain string, mainHostNameFromMain string, authzFromMain authzFunc) (*Server, error) {
 	port = portFromMain
 	frameSource = frameSourceFromMain
 	mainHostName = mainHostNameFromMain
+	authz = authzFromMain
 	s := new(Server)
 	if err := s.LoadApps(file); err != nil {
 		return nil, err
@@ -220,5 +225,5 @@ func makeHandler(app *app) http.Handler {
 	if !app.Secured || handler == nil {
 		return handler
 	}
-	return security.ValidateJWTMiddleware(handler, app.Roles)
+	return authz(handler, app.Roles)
 }

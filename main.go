@@ -89,7 +89,7 @@ func main() {
 
 func createRootMux(port int, frameSource *string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {
 	// Create the app handler
-	appServer, err := appserver.NewServer("./configs/apps.json", port, *frameSource, mainHostName)
+	appServer, err := appserver.NewServer("./configs/apps.json", port, *frameSource, mainHostName, security.ValidateJWTMiddleware)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
