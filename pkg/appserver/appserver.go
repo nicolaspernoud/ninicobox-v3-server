@@ -207,9 +207,9 @@ func makeHandler(app *app) http.Handler {
 			ModifyResponse: func(res *http.Response) error {
 				u, err := res.Location()
 				if err == nil {
-					u.Scheme = "https"
-					// Alter the redirect location if the redirection is not relative to the exposed host
-					if !strings.Contains(u.Host, fwdFrom) {
+					// Alter the redirect location if the redirection is relative to the proxied host
+					if strings.Contains(u.Host, fwdTo) {
+						u.Scheme = "https"
 						u.Host = fwdFrom + ":" + strconv.Itoa(port)
 					}
 					res.Header.Set("Location", u.String())

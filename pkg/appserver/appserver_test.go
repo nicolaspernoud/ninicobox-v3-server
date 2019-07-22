@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,19 +33,36 @@ func TestServer(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(testHandler))
 	defer target.Close()
 
-	redirectAbsoluteTarget := httptest.NewServer(http.HandlerFunc(testAbsoluteRedirectHandler))
-	defer redirectAbsoluteTarget.Close()
+	// For the redirectFwdToTarget, we need to know the port in advance, so we use a custom listener
+	// create a listener with the desired port.
+	l, err := net.Listen("tcp", "127.0.0.1:8044")
+	if err != nil {
+		log.Fatal(err)
+	}
+	redirectFwdToTarget := httptest.NewUnstartedServer(http.HandlerFunc(testFwdToRedirectHandler))
+	defer redirectFwdToTarget.Close()
+	// NewUnstartedServer creates a listener. Close that listener and replace
+	// with the one we created.
+	redirectFwdToTarget.Listener.Close()
+	redirectFwdToTarget.Listener = l
+	// Start the server.
+	redirectFwdToTarget.Start()
 
+	// Create the other servers (ports can be random)
 	redirectRelativeTarget := httptest.NewServer(http.HandlerFunc(testRelativeRedirectHandler))
 	defer redirectRelativeTarget.Close()
+
+	redirectAbsoluteTarget := httptest.NewServer(http.HandlerFunc(testAbsoluteRedirectHandler))
+	defer redirectAbsoluteTarget.Close()
 
 	// Create apps
 	appFile := writeApps([]*app{
 		{App: App{Host: "test.unsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
 		{App: App{Host: "*.test.wildcard", IsProxy: true, ForwardTo: target.Listener.Addr().String()}},
 		{App: App{Host: "test.unsecuredstatic", IsProxy: false, Serve: "testdata"}},
-		{App: App{Host: "test.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
+		{App: App{Host: "test.fwdtoredirect", IsProxy: true, ForwardTo: "127.0.0.1:8044"}},
 		{App: App{Host: "test.relativeredirect", IsProxy: true, ForwardTo: redirectRelativeTarget.Listener.Addr().String()}},
+		{App: App{Host: "test.absoluteredirect", IsProxy: true, ForwardTo: redirectAbsoluteTarget.Listener.Addr().String()}},
 		{App: App{Host: "test.securedproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin", "user"}}},
 		{App: App{Host: "test.adminsecuredproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{"admin"}}},
 		{App: App{Host: "test.emptyrolesproxy", IsProxy: true, ForwardTo: target.Listener.Addr().String(), Secured: true, Roles: []string{}}},
@@ -109,8 +128,9 @@ func TestServer(t *testing.T) {
 		code     int
 		location string
 	}{
-		{"http://test.absoluteredirect/", 302, "https://test.absoluteredirect:443"},
+		{"http://test.fwdtoredirect", 302, "https://test.fwdtoredirect:443"},
 		{"http://test.relativeredirect/", 302, "https://relative.redirect.test.relativeredirect"},
+		{"http://test.absoluteredirect/", 302, "https://absolute.redirect"},
 	}
 
 	// Run redirect tests
@@ -132,14 +152,19 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-// Redirect is bad when is made absolute, regardless of the host header
-func testAbsoluteRedirectHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://absolute.redirect.bad", http.StatusFound)
+// Redirect is bad when is made to the proxied host (fwdTo) and not to the exposed host (fwdFrom)
+func testFwdToRedirectHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://fwdto.redirect.bad.127.0.0.1:8044", http.StatusFound)
 }
 
-// Redirect is good when is redirect relative to the host header
+// Redirect is good when is made to the host (fwdFrom)
 func testRelativeRedirectHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://relative.redirect."+r.Host, http.StatusFound)
+}
+
+// Redirect is also good when is absolute (no links to neither the host -fwdFrom- or the proxied service -fwdTo-)
+func testAbsoluteRedirectHandler(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "https://absolute.redirect", http.StatusFound)
 }
 
 func writeApps(apps []*app) (name string) {
