@@ -128,7 +128,7 @@ func TestServer(t *testing.T) {
 		code     int
 		location string
 	}{
-		{"http://test.fwdtoredirect", 302, "https://test.fwdtoredirect:443"},
+		{"http://test.fwdtoredirect", 302, "https://test.fwdtoredirect:443/some/path"},
 		{"http://test.relativeredirect/", 302, "https://relative.redirect.test.relativeredirect"},
 		{"http://test.absoluteredirect/", 302, "https://absolute.redirect"},
 	}
@@ -154,7 +154,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 // Redirect is bad when is made to the proxied host (fwdTo) and not to the exposed host (fwdFrom)
 func testFwdToRedirectHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "https://fwdto.redirect.bad.127.0.0.1:8044", http.StatusFound)
+	http.Redirect(w, r, "https://fwdto.redirect.bad.127.0.0.1:8044/some/path", http.StatusFound)
 }
 
 // Redirect is good when is made to the host (fwdFrom)
