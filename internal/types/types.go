@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"sort"
 
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/appserver"
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
@@ -107,7 +108,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.34",
+		ServerVersion: "3.1.35",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
@@ -122,6 +123,13 @@ type App struct {
 	IframePath string `json:"iframepath"`
 	appserver.App
 }
+
+// ByRank implements sort.Interface for []App based on the Rank field
+type ByRank []App
+
+func (a ByRank) Len() int           { return len(a) }
+func (a ByRank) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByRank) Less(i, j int) bool { return a[i].Rank < a[j].Rank }
 
 // SendApps send apps as response from an http requests
 func SendApps(w http.ResponseWriter, req *http.Request) {
@@ -168,6 +176,7 @@ func SetApps(w http.ResponseWriter, req *http.Request) {
 	for key, val := range apps {
 		apps[key].Host = r.ReplaceAllString(val.Host, "")
 	}
+	sort.Sort(ByRank(apps))
 	err = common.Save("./configs/apps.json", &apps)
 	if err != nil {
 		http.Error(w, err.Error(), 400)

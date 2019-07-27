@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sort"
 
-	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -53,6 +54,13 @@ type User struct {
 	LongLivedToken bool   `json:"longLivedToken"`
 }
 
+// ByID implements sort.Interface for []User based on the ID field
+type ByID []User
+
+func (a ByID) Len() int           { return len(a) }
+func (a ByID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByID) Less(i, j int) bool { return a[i].ID < a[j].ID }
+
 // SendUsers send users as response from an http requests
 func SendUsers(w http.ResponseWriter, req *http.Request) {
 	var users []User
@@ -91,7 +99,7 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 			users[key].Password = ""
 		}
 	}
-
+	sort.Sort(ByID(users))
 	err := common.Save("./configs/users.json", &users)
 	if err != nil {
 		http.Error(w, err.Error(), 400)
