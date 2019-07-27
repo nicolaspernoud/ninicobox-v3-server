@@ -2,7 +2,7 @@
 	{
 		"name": "UnsecuredReverseProxy",
 		"icon": "navigation",
-		"rank": "1",
+		"rank": 1,
 		"iframed": true,
 		"iframepath": "/test",
 		"isProxy": true,
@@ -17,7 +17,7 @@
 	{
 		"name": "SecuredProxy",
 		"icon": "navigation",
-		"rank": "2",
+		"rank": 2,
 		"iframed": true,
 		"iframepath": "/test",
 		"isProxy": true,
@@ -35,7 +35,7 @@
 	{
 		"name": "AdminOnlyProxy",
 		"icon": "navigation",
-		"rank": "3",
+		"rank": 3,
 		"iframed": true,
 		"iframepath": "/test",
 		"isProxy": true,
@@ -52,7 +52,7 @@
 	{
 		"name": "StaticServer",
 		"icon": "folder",
-		"rank": "4",
+		"rank": 4,
 		"iframed": false,
 		"iframepath": "",
 		"isProxy": false,

@@ -108,7 +108,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.35",
+		ServerVersion: "3.1.36",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
@@ -118,7 +118,7 @@ func InfosFromJSONFiles() (Infos, error) {
 type App struct {
 	Name       string `json:"name"`
 	Icon       string `json:"icon"`
-	Rank       string `json:"rank"`
+	Rank       int    `json:"rank"`
 	Iframed    bool   `json:"iframed"`
 	IframePath string `json:"iframepath"`
 	appserver.App
