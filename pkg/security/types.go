@@ -84,6 +84,15 @@ func SetUsers(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, jsonErr.Error(), 400)
 		return
 	}
+	// Check that the IDs are uniques
+	for indexX, valX := range users {
+		for indexY, valY := range users {
+			if indexX != indexY && valX.ID == valY.ID {
+				http.Error(w, "IDs must be uniques", 400)
+				return
+			}
+		}
+	}
 	for key, user := range users {
 		if user.Password == "" && user.PasswordHash == "" {
 			http.Error(w, "passwords cannot be blank", 400)

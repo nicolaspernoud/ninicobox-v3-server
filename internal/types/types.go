@@ -108,7 +108,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.36",
+		ServerVersion: "3.1.37",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil
@@ -170,6 +170,15 @@ func SetApps(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
+	}
+	// Check that the ranks are uniques
+	for indexX, valX := range apps {
+		for indexY, valY := range apps {
+			if indexX != indexY && valX.Rank == valY.Rank {
+				http.Error(w, "ranks must be uniques", 400)
+				return
+			}
+		}
 	}
 	// Strip schemes from hosts
 	r := regexp.MustCompile(`https?:\/\/`)

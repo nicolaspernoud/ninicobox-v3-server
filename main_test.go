@@ -21,6 +21,7 @@ var (
 	reg, _                    = regexp.Compile("[\n \t]+")
 	initialApps               = reg.ReplaceAllString(string(initialAppsBuff), "")
 	updatedAppsWithSchemes    = strings.Replace(initialApps, "unsecuredreverseproxy.", "http://unsecuredreverseproxy.", 1)
+	updatedAppsSameRank       = strings.Replace(initialApps, "\"rank\":2", "\"rank\":1", 1)
 	filteredApps              = `[{"name":"UnsecuredReverseProxy","icon":"navigation","rank":1,"iframed":true,"iframepath":"/test","isProxy":true,"host":"unsecuredreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":false,"login":"","password":"","roles":[]},{"name":"SecuredProxy","icon":"navigation","rank":2,"iframed":true,"iframepath":"/test","isProxy":true,"host":"securedreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":true,"login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","icon":"folder","rank":4,"iframed":false,"iframepath":"","isProxy":false,"host":"staticserver.127.0.0.1.nip.io","forwardTo":"","serve":"./appserver/testdata","secured":false,"login":"","password":"","roles":[]}]`
 	updatedUsersBlankPassword = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTarget          = `{"sharedfor":"download","url":"/api/files/usersrw/File%20users%2001.txt","lifespan":7}`
@@ -157,6 +158,8 @@ func CheckAdmin(t *testing.T, port string, wg *sync.WaitGroup) {
 	tester.DoRequestOnServer(t, port, "GET", "/api/common/apps", adminHeader, "", http.StatusOK, initialApps)
 	// Try to update the apps with schemes
 	tester.DoRequestOnServer(t, port, "POST", "/api/admin/apps", adminHeader, updatedAppsWithSchemes, http.StatusOK, initialApps)
+	// Try to update the apps with not unique rank
+	tester.DoRequestOnServer(t, port, "POST", "/api/admin/apps", adminHeader, updatedAppsSameRank, http.StatusBadRequest, "ranks must be uniques")
 	// Try to login with old password
 	tester.DoRequestOnServer(t, port, "POST", "/api/login", "", `{"login": "admin","password": "password"}`, http.StatusForbidden, `user not found`)
 	// Update the user to revert to old password
