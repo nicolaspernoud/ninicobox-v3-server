@@ -2,7 +2,6 @@ package onlyoffice
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -50,13 +49,11 @@ func HandleSaveCallback(w http.ResponseWriter, req *http.Request) {
 		ressource := req.URL.Query().Get("file") + "?token=" + req.URL.Query().Get("token")
 		req, err := http.NewRequest("PUT", ressource, resp.Body)
 		client := &http.Client{}
-		resp, err = client.Do(req)
+		_, err = client.Do(req)
 		if err != nil {
 			http.Error(w, err.Error(), 400)
 			return
 		}
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
-		w.Write(body)
+		w.Write([]byte("{\"error\":0}"))
 	}
 }
