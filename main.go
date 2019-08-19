@@ -17,6 +17,7 @@ import (
 
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/log"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/onlyoffice"
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/security"
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/webdavaug"
 
@@ -110,11 +111,12 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 
 	mainMux := http.NewServeMux()
 
-	// Create login unsecured routes
+	// Create unsecured routes
 	mainMux.HandleFunc("/api/login", security.Authenticate)
 	mainMux.HandleFunc("/api/infos", func(w http.ResponseWriter, req *http.Request) {
 		types.SendInfos(w, req, *officeServer)
 	})
+	mainMux.HandleFunc("/api/onlyoffice/save", onlyoffice.HandleSaveCallback)
 
 	// Create routes secured for all authenticated users
 	commonMux := http.NewServeMux()

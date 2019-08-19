@@ -25,6 +25,7 @@ var (
 	filteredApps              = `[{"name":"UnsecuredReverseProxy","icon":"navigation","rank":1,"iframed":true,"iframepath":"/test","isProxy":true,"host":"unsecuredreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":false,"login":"","password":"","roles":[]},{"name":"SecuredProxy","icon":"navigation","rank":2,"iframed":true,"iframepath":"/test","isProxy":true,"host":"securedreverseproxy.127.0.0.1.nip.io","forwardTo":"www.example.com","serve":"","secured":true,"login":"","password":"","roles":["admin","user"]},{"name":"StaticServer","icon":"folder","rank":4,"iframed":false,"iframepath":"","isProxy":false,"host":"staticserver.127.0.0.1.nip.io","forwardTo":"","serve":"./appserver/testdata","secured":false,"login":"","password":"","roles":[]}]`
 	updatedUsersBlankPassword = `[{"id":1,"login":"admin","name":"Ad","surname":"MIN","role":"admin","password":"","passwordHash":""},{"id":2,"login":"user","name":"Us","surname":"ER","role":"user","passwordHash":"$2a$10$bWxtHLE.3pFkzg.XP4eR1eSBIkUOHiCaGvTUT3hiBxmhqtyRydA26"}]`
 	shareTokenTarget          = `{"sharedfor":"download","url":"/api/files/usersrw/File%20users%2001.txt","lifespan":7}`
+	shareTokenWithWriteTarget = `{"sharedfor":"download","url":"/api/files/usersrw/File%20users%2001.txt","lifespan":7,"canwrite":true}`
 	wrongAuthHeader           = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwibG9naW4iOiJhZG1pbiIsIm5hbWUiOiJBZCIsInN1cm5hbWUiOiJNSU4iLCJyb2xlIjoiYWRtaW4iLCJwYXNzd29yZEhhc2giOiIkMmEkMTAkV1FlYWVUT1FiekMxdzNGUDQxeDd0dUhULkxJOUFmakwxVVY3TG9Zem96WjdYekFKLllSdHUiLCJleHAiOjE1MzMwMzI3MTUsImlhdCI6MTUzMzAyOTExNX0.3FF273T6VXxhFOLR3gjBvPvYwSxiiyF_XPVTE_U2PSg"
 	basicAuthAdminHeader      = "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:password"))
 )
@@ -118,7 +119,7 @@ func CheckUser(t *testing.T, port string, wg *sync.WaitGroup) {
 	// Try to use the share token in an header
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt", "Bearer "+shareToken, "", http.StatusForbidden, "CSRF protection triggered")
 	// Try to use the share token for the token path
-	tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt?token="+shareToken, "", "", http.StatusOK, "Lorem ipsum")
+	content := tester.DoRequestOnServer(t, port, "GET", "/api/files/usersrw/File users 01.txt?token="+shareToken, "", "", http.StatusOK, "Lorem ipsum")
 	// Try to use the share token to alter the ressource
 	tester.DoRequestOnServer(t, port, "PUT", "/api/files/usersrw/File users 01.txt?token="+shareToken, "", "new content", http.StatusMethodNotAllowed, "the share token can only be used for the GET method")
 	// Try to use the share token for a different path than the token path
@@ -129,6 +130,10 @@ func CheckUser(t *testing.T, port string, wg *sync.WaitGroup) {
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/adminsrw/File admins 01.txt?token="+shareToken, "", "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
 	// Try to get an admin basic auth protected webdav ressource with user basic auth
 	tester.DoRequestOnServer(t, port, "GET", "/api/files/basicauth/File admins 01.txt", "Basic "+base64.StdEncoding.EncodeToString([]byte("user:password")), "", http.StatusForbidden, "user has role user, which is not in allowed roles ([admin])")
+	// Try to get a share token with write permission
+	shareToken = tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, shareTokenWithWriteTarget, http.StatusOK, `eyJhbG`)
+	// Try to use the share token to alter the ressource
+	tester.DoRequestOnServer(t, port, "PUT", "/api/files/usersrw/File users 01.txt?token="+shareToken, "", content, http.StatusCreated, "Created")
 	// Try to get a share token for an allowed app hostname
 	shareToken = tester.DoRequestOnServer(t, port, "POST", "/api/common/getsharetoken", userHeader, `{"sharedfor":"download","url":"securedreverseproxy.127.0.0.1.nip.io","lifespan":7}`, http.StatusOK, `eyJhbG`)
 	t.Logf("Got share token: %v", shareToken)

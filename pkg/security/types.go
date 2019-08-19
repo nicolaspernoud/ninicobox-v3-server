@@ -40,6 +40,7 @@ type ShareToken struct {
 	CommonClaims
 	URL              string `json:"url,omitempty"`              // For share token
 	SharingUserLogin string `json:"sharingUserLogin,omitempty"` // For share token
+	CanWrite         bool   `json:"canwrite,omitempty"`         // For share token
 }
 
 // User represents an application user

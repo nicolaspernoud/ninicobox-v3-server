@@ -105,6 +105,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		Sharedfor string `json:"sharedfor"`
 		URL       string `json:"url"`
 		Lifespan  int    `json:"lifespan"`
+		CanWrite  bool   `json:"canwrite,omitempty"`
 	}
 	err := json.NewDecoder(req.Body).Decode(&wantedToken)
 	if err != nil {
@@ -116,12 +117,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	role := req.Context().Value(ContextRole).(string)
-	var expiresAt int64
-	if role == "admin" {
-		expiresAt = now().Add(time.Hour * time.Duration(24*wantedToken.Lifespan)).Unix()
-	} else {
-		expiresAt = now().Add(time.Hour * time.Duration(3)).Unix()
-	}
+	expiresAt := now().Add(time.Hour * time.Duration(24*wantedToken.Lifespan)).Unix()
 	// If user is found, create and send a JWT
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, ShareToken{
 		CommonClaims: CommonClaims{
@@ -134,6 +130,7 @@ func GetShareToken(w http.ResponseWriter, req *http.Request) {
 		},
 		URL:              strings.TrimPrefix(wantedToken.URL, "*."),
 		SharingUserLogin: req.Context().Value(ContextLogin).(string),
+		CanWrite:         wantedToken.CanWrite,
 	})
 	tokenString, err := token.SignedString(jWTSignature)
 	if err != nil {
@@ -226,8 +223,8 @@ func validateShareToken(JWT string, allowedRoles []string, req *http.Request) (i
 		if urlPath != "" && urlPath != req.URL.Path {
 			return 403, claims.CommonClaims, errors.New("the share token can only be used for the given path")
 		}
-		// If a path is present, the share token is for a file share, only the GET method is allowed
-		if urlPath != "" && req.Method != "GET" {
+		// If a path is present, the share token is for a file share, only the GET method is allowed, unless CanWrite is true
+		if urlPath != "" && req.Method != "GET" && !claims.CanWrite {
 			return 405, claims.CommonClaims, errors.New("the share token can only be used for the GET method")
 		}
 		err = checkUserRoleIsAllowed(claims.Role, allowedRoles)
