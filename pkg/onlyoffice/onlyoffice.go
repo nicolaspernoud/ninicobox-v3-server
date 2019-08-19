@@ -3,6 +3,7 @@ package onlyoffice
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 // HandleSaveCallback is the callback function wanted by onlyoffice to allow saving a document
@@ -17,19 +18,27 @@ func HandleSaveCallback(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	var bdy struct {
+		Key        string `json:"key"`
+		Status     int    `json:"status"`
+		URL        string `json:"url"`
+		Changesurl string `json:"changesurl"`
+		History    struct {
+			ServerVersion string `json:"serverVersion"`
+			Changes       []struct {
+				Created string `json:"created"`
+				User    struct {
+					ID   string `json:"id"`
+					Name string `json:"name"`
+				} `json:"user"`
+			} `json:"changes"`
+		} `json:"history"`
+		Users   []string `json:"users"`
 		Actions []struct {
 			Type   int    `json:"type"`
 			Userid string `json:"userid"`
 		} `json:"actions"`
-		Changesurl string `json:"changesurl"`
-		History    struct {
-			Changes       string `json:"changes"`
-			ServerVersion string `json:"serverVersion"`
-		} `json:"history"`
-		Key    string   `json:"key"`
-		Status int      `json:"status"`
-		URL    string   `json:"url"`
-		Users  []string `json:"users"`
+		Lastsave    time.Time `json:"lastsave"`
+		Notmodified bool      `json:"notmodified"`
 	}
 	jsonErr := json.NewDecoder(req.Body).Decode(&bdy)
 	if jsonErr != nil {
