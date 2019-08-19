@@ -30,7 +30,7 @@ var (
 )
 
 func TestEndToEnd(t *testing.T) {
-	rootMux, _ := createRootMux(*httpsPort, frameSource, *mainHostName)
+	rootMux, _ := createRootMux(*httpsPort)
 	ts := httptest.NewServer(rootMux)
 	defer ts.Close()
 

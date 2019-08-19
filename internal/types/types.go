@@ -66,6 +66,7 @@ type Infos struct {
 	ServerVersion string     `json:"server_version"`
 	ClientVersion string     `json:"client_version"`
 	Bookmarks     []Bookmark `json:"bookmarks"`
+	OfficeServer  string     `json:"office_server"`
 }
 
 // Bookmark represents a bookmark shared by the server with the client into the infos
@@ -76,7 +77,7 @@ type Bookmark struct {
 }
 
 // SendInfos send infos as response from an http requests
-func SendInfos(w http.ResponseWriter, req *http.Request) {
+func SendInfos(w http.ResponseWriter, req *http.Request, officeServer string) {
 	if req.Method != http.MethodGet {
 		http.Error(w, "method not allowed", 405)
 		return
@@ -85,6 +86,7 @@ func SendInfos(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), 400)
 	} else {
+		infos.OfficeServer = officeServer
 		json.NewEncoder(w).Encode(infos)
 	}
 }
@@ -108,7 +110,7 @@ func InfosFromJSONFiles() (Infos, error) {
 		return Infos{}, err
 	}
 	return Infos{
-		ServerVersion: "3.1.37",
+		ServerVersion: "3.1.38",
 		ClientVersion: clientVersion,
 		Bookmarks:     bookmarks,
 	}, nil

@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/appserver"
 	"github.com/nicolaspernoud/ninicobox-v3-server/internal/types"
+	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/appserver"
 
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/log"
@@ -28,6 +28,7 @@ var (
 	mainHostName = flag.String("hostname", "localhost", "Main hostname, defaults to localhost")
 	frameSource  = flag.String("framesource", "localhost", "Location from where iframes are allowed, defaults to localhost")
 	logFile      = flag.String("log_file", "", "Optional file to log to, defaults to no file logging")
+	officeServer = flag.String("office_server", "office.domain.com", "Editing document server url")
 	debugMode    = flag.Bool("debug", false, "Debug mode, disable let's encrypt, enable CORS and more logging")
 	httpsPort    = flag.Int("https_port", 443, "HTTPS port to serve on (defaults to 443)")
 	httpPort     = flag.Int("http_port", 80, "HTTP port to serve on (defaults to 80), only used to get let's encrypt certificates")
@@ -59,7 +60,7 @@ func main() {
 	log.Logger.Printf("Main hostname is %v\n", *mainHostName)
 
 	// Create the server
-	rootMux, hostPolicy := createRootMux(*httpsPort, frameSource, *mainHostName)
+	rootMux, hostPolicy := createRootMux(*httpsPort)
 
 	// Serve locally with https on debug mode or with let's encrypt on production mode
 	if *debugMode {
@@ -87,9 +88,9 @@ func main() {
 	}
 }
 
-func createRootMux(port int, frameSource *string, mainHostName string) (http.Handler, func(ctx context.Context, host string) error) {
+func createRootMux(port int) (http.Handler, func(ctx context.Context, host string) error) {
 	// Create the app handler
-	appServer, err := appserver.NewServer("./configs/apps.json", port, *frameSource, mainHostName, security.ValidateJWTMiddleware)
+	appServer, err := appserver.NewServer("./configs/apps.json", port, *frameSource, *mainHostName, security.ValidateJWTMiddleware)
 	if err != nil {
 		log.Logger.Fatal(err)
 	}
@@ -100,7 +101,7 @@ func createRootMux(port int, frameSource *string, mainHostName string) (http.Han
 
 	// Put it together into the main handler
 	rootMux := http.NewServeMux()
-	rootMux.Handle(mainHostName+"/", security.WebSecurityMiddleware(mainMux, frameSource))
+	rootMux.Handle(*mainHostName+"/", security.WebSecurityMiddleware(mainMux, frameSource))
 	rootMux.Handle("/", appHandler)
 	return rootMux, appServer.HostPolicy
 }
@@ -111,7 +112,9 @@ func createMainMux(appServer *appserver.Server) http.Handler {
 
 	// Create login unsecured routes
 	mainMux.HandleFunc("/api/login", security.Authenticate)
-	mainMux.HandleFunc("/api/infos", types.SendInfos)
+	mainMux.HandleFunc("/api/infos", func(w http.ResponseWriter, req *http.Request) {
+		types.SendInfos(w, req, *officeServer)
+	})
 
 	// Create routes secured for all authenticated users
 	commonMux := http.NewServeMux()
