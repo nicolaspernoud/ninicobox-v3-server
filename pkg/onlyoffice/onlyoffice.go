@@ -63,6 +63,7 @@ func HandleSaveCallback(w http.ResponseWriter, req *http.Request) {
 			http.Error(w, err.Error(), 400)
 			return
 		}
+		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte("{\"error\":0}"))
 	}
 }
