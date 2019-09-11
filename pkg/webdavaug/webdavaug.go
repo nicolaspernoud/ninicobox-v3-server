@@ -2,6 +2,8 @@ package webdavaug
 
 import (
 	"archive/zip"
+	"image"
+	"image/jpeg"
 	"io"
 	"net/http"
 	"net/url"
@@ -10,6 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/disintegration/imaging"
 
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/common"
 	"github.com/nicolaspernoud/ninicobox-v3-server/pkg/log"
@@ -22,16 +26,18 @@ import (
 // - is secured with basic auth or json web tokens (JWT)
 // - enable download of directories as streamed zip files
 type WebdavAug struct {
-	prefix     string
-	directory  string
-	methodMux  map[string]http.Handler
-	zipHandler http.Handler
+	prefix        string
+	directory     string
+	methodMux     map[string]http.Handler
+	zipHandler    http.Handler
+	resizeHandler http.Handler
 }
 
 // New create an initialized WebdavAug instance
 func New(prefix string, directory string, allowedRoles []string, canWrite bool, basicAuth bool) WebdavAug {
 
 	unsecuredZip := http.StripPrefix(prefix, ZipServer(directory))
+	unsecuredResize := http.StripPrefix(prefix, ResizeServer(directory))
 	unsecuredWebdav := &webdav.Handler{
 		Prefix:     prefix,
 		FileSystem: webdav.Dir(directory),
@@ -39,15 +45,16 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool, 
 		Logger:     webdavLogger,
 	}
 
-	var zip http.Handler
-	var webdav http.Handler
+	var securityMiddleware func(http.Handler, []string) http.Handler
 	if basicAuth {
-		zip = security.ValidateBasicAuthMiddleware(unsecuredZip, allowedRoles)
-		webdav = security.ValidateBasicAuthMiddleware(unsecuredWebdav, allowedRoles)
+		securityMiddleware = security.ValidateBasicAuthMiddleware
 	} else {
-		zip = security.ValidateJWTMiddleware(unsecuredZip, allowedRoles)
-		webdav = security.ValidateJWTMiddleware(unsecuredWebdav, allowedRoles)
+		securityMiddleware = security.ValidateJWTMiddleware
 	}
+
+	zip := securityMiddleware(unsecuredZip, allowedRoles)
+	resize := securityMiddleware(unsecuredResize, allowedRoles)
+	webdav := securityMiddleware(unsecuredWebdav, allowedRoles)
 
 	var mMux map[string]http.Handler
 
@@ -74,10 +81,11 @@ func New(prefix string, directory string, allowedRoles []string, canWrite bool, 
 	}
 
 	return WebdavAug{
-		prefix:     prefix,
-		directory:  directory,
-		methodMux:  mMux,
-		zipHandler: zip,
+		prefix:        prefix,
+		directory:     directory,
+		methodMux:     mMux,
+		zipHandler:    zip,
+		resizeHandler: resize,
 	}
 
 }
@@ -102,6 +110,9 @@ func (wdaug WebdavAug) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			} else {
 				h = wdaug.zipHandler
 			}
+		}
+		if resize := r.URL.Query().Get("resize"); r.Method == "PUT" && strings.Contains(r.Header.Get("content-type"), "image/jp") && resize != "" {
+			h = wdaug.resizeHandler
 		}
 		h.ServeHTTP(w, r)
 	} else {
@@ -213,4 +224,55 @@ func maxZipSize(path string) (int64, error) {
 		return err
 	})
 	return size, err
+}
+
+type resizeHandler struct {
+	root string
+}
+
+// ResizeServer write the uploaded content as a jpg image after resizing it
+func ResizeServer(root string) http.Handler {
+	return &resizeHandler{root}
+}
+
+func (rh *resizeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	webdavLogger(r, nil)
+	ressource := r.URL.Path
+	fullName := filepath.Join(rh.root, filepath.FromSlash(path.Clean("/"+ressource)))
+
+	img, _, err := image.Decode(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		return
+	}
+
+	minRes, err := strconv.Atoi(r.URL.Query().Get("resize"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	width := img.Bounds().Dx()
+	height := img.Bounds().Dy()
+
+	var m image.Image
+	// Do not try to upsize the image
+	if minRes >= width || minRes >= height {
+		m = img
+	} else if width >= height { // Landscape images
+		m = imaging.Resize(img, 0, minRes, imaging.Lanczos)
+	} else { // Portrait image
+		m = imaging.Resize(img, minRes, 0, imaging.Lanczos)
+	}
+	// Prepare the out file
+	out, err := os.Create(fullName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer out.Close()
+
+	err = jpeg.Encode(out, m, &jpeg.Options{90})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
