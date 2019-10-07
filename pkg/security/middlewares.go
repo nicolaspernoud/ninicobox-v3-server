@@ -20,7 +20,7 @@ func CorsMiddleware(next http.Handler, frameSource *string) http.Handler {
 func WebSecurityMiddleware(next http.Handler, frameSource *string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Strict-Transport-Security", "max-age=63072000")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://raw.githubusercontent.com; style-src * 'unsafe-inline'; script-src 'self'; font-src *; frame-src "+*frameSource+"; frame-ancestors "+*frameSource)
+		w.Header().Set("Content-Security-Policy", "default-src 'self' blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://raw.githubusercontent.com; style-src * 'unsafe-inline'; script-src 'self'; font-src *; frame-src "+*frameSource+"; frame-ancestors "+*frameSource)
 		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "same-origin")
