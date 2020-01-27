@@ -1,3 +1,5 @@
+# Replaced by vestibule (https://www.github.com/nicolaspernoud/Vestibule)
+
 # ninicobox-v3-server
 
 ## Installation
